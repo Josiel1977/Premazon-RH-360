@@ -1,0 +1,6 @@
+{
+  "name": "PREMAZON RH 360",
+  "description": "Plataforma Completa de Universidade Corporativa e Gestão para a Premazon.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
