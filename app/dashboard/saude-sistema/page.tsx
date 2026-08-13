@@ -37,7 +37,9 @@ export default function SystemHealthPage() {
     const admissionPromise = supabase.rpc("rh360_diagnostico_admissao");
     const onboardingPromise = supabase.rpc("rh360_diagnostico_onboarding_360");
     const candidateIdentificationPromise = supabase.rpc("rh360_diagnostico_identificacao_candidatos");
-    const [runtime, database, dataCenter, admission, onboarding, candidateIdentification] = await Promise.allSettled([runtimePromise, databasePromise, dataCenterPromise, admissionPromise, onboardingPromise, candidateIdentificationPromise]);
+    const behavioralProfilePromise = supabase.rpc("rh360_diagnostico_perfil_comportamental");
+    const employeeImportPromise = supabase.rpc("rh360_diagnostico_importacao_colaboradores");
+    const [runtime, database, dataCenter, admission, onboarding, candidateIdentification, behavioralProfile, employeeImport] = await Promise.allSettled([runtimePromise, databasePromise, dataCenterPromise, admissionPromise, onboardingPromise, candidateIdentificationPromise, behavioralProfilePromise, employeeImportPromise]);
     const collected: SystemCheck[] = [];
     if (runtime.status === "fulfilled") {
       collected.push(...runtime.value.checks);
@@ -91,6 +93,26 @@ export default function SystemHealthPage() {
         detalhe: "CPF protegido, filiação materna e nascimento ainda não foram preparados no cadastro de candidaturas.",
         acao: detail?.includes("rh360_diagnostico_identificacao_candidatos") ? "Execute a migração 010 no Supabase." : detail ?? "Revise a migração 010.",
         criticidade: "critica", ordem: 68,
+      });
+    }
+    if (behavioralProfile.status === "fulfilled" && !behavioralProfile.value.error) collected.push(...((behavioralProfile.value.data ?? []) as SystemCheck[]));
+    else {
+      const detail = behavioralProfile.status === "fulfilled" ? behavioralProfile.value.error?.message : String(behavioralProfile.reason);
+      collected.push({
+        chave: "migracao_011_indisponivel", titulo: "Questionário comportamental indisponível", categoria: "Banco", status: "erro",
+        detalhe: "Convites individuais, respostas e resultados D/I/S/C ainda não foram preparados.",
+        acao: detail?.includes("rh360_diagnostico_perfil_comportamental") ? "Execute a migração 011 no Supabase." : detail ?? "Revise a migração 011.",
+        criticidade: "critica", ordem: 69,
+      });
+    }
+    if (employeeImport.status === "fulfilled" && !employeeImport.value.error) collected.push(...((employeeImport.value.data ?? []) as SystemCheck[]));
+    else {
+      const detail = employeeImport.status === "fulfilled" ? employeeImport.value.error?.message : String(employeeImport.reason);
+      collected.push({
+        chave: "migracao_012_indisponivel", titulo: "Importação do cadastro mestre indisponível", categoria: "Banco", status: "erro",
+        detalhe: "A carga controlada de colaboradores ativos ainda não foi preparada.",
+        acao: detail?.includes("rh360_diagnostico_importacao_colaboradores") ? "Execute a migração 012 no Supabase." : detail ?? "Revise a migração 012.",
+        criticidade: "critica", ordem: 70,
       });
     }
     setChecks(collected.sort((a, b) => a.ordem - b.ordem)); setLoading(false);

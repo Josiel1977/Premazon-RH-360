@@ -2,7 +2,7 @@
 
 Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo**, **Recrutamento & Seleção**, **Admissão & Onboarding** e **Treinamento & Desenvolvimento**.
 
-Versão atual: **0.11.0**.
+Versão atual: **0.12.0**.
 
 ## O que já está disponível
 
@@ -95,6 +95,8 @@ No SQL Editor do Supabase, execute nesta ordem:
 9. `database/migrations/20260813_008_admissao_onboarding.sql` — pré-admissão, documentos privados, checklists e experiência 7/30/60/90.
 10. `database/migrations/20260813_009_onboarding_360_configuravel.sql` — conteúdos versionados, regras por contexto, jornada e evidências de ciência.
 11. `database/migrations/20260813_010_identificacao_candidatos.sql` — CPF protegido, filiação materna e nascimento no cadastro de candidatos.
+12. `database/migrations/20260813_011_perfil_comportamental_colaborador.sql` — convites individuais, respostas e resultados versionados do questionário de autopercepção.
+13. `database/migrations/20260813_012_importacao_cadastro_mestre.sql` — importação controlada, deduplicação e auditoria do cadastro mestre de colaboradores.
 
 Depois, em **Authentication > Users**, crie o primeiro usuário. Copie o UUID dele e execute no SQL Editor:
 
@@ -154,10 +156,13 @@ O formulário público não cria conta e não possui acesso direto ao banco. A A
 3. Importe primeiro a LNT e confira a prévia antes de gravar.
 4. Importe a avaliação de desempenho; respostas sem nota serão rejeitadas com aviso em vez de receber média artificial.
 5. Navegue pelas 13 etapas do ciclo: Dashboard, Avaliação de Desempenho, Perfil Comportamental, Matriz de Competências, Análise de Lacunas, LNT, PDI, Catálogo, Custos e Orçamento, Cronograma, Custos por Setor, Histórico e Indicadores.
-6. Priorize as necessidades, mantenha o catálogo e distribua as ações no plano anual.
-7. Depois da execução, registre participantes, frequência, certificado e avaliação de eficácia.
+6. Se o cadastro mestre estiver vazio, execute a migração 012 e use **Colaborador 360 > Importar ativos** para revisar e confirmar a relação XLSX.
+7. Em **Perfil Comportamental**, selecione um colaborador, gere o link individual e envie por WhatsApp ou e-mail.
+8. O colaborador responde 24 perguntas sem criar senha; a API calcula D/I/S/C no servidor e grava o instrumento, o algoritmo e o aviso apresentados.
+9. Priorize as necessidades, mantenha o catálogo e distribua as ações no plano anual.
+10. Depois da execução, registre participantes, frequência, certificado e avaliação de eficácia.
 
-O Perfil Comportamental é uma leitura das competências já avaliadas, não um teste psicológico ou diagnóstico de personalidade. Custos por Setor respeita a alocação informada no campo público-alvo/setor e não faz rateios automáticos. As planilhas de origem contêm dados pessoais e não fazem parte do repositório. Como elas não possuem matrícula, o vínculo com o cadastro oficial permanece pendente até conferência do RH. Consulte [docs/treinamento-desenvolvimento.md](docs/treinamento-desenvolvimento.md).
+O Perfil Comportamental possui um questionário de autopercepção D/I/S/C fornecido pelo RH e mantém separada a leitura das competências importadas. Nenhuma das duas visões é teste psicológico, diagnóstico, prova de aptidão ou decisão automática. Custos por Setor respeita a alocação informada no campo público-alvo/setor e não faz rateios automáticos. As planilhas de origem contêm dados pessoais e não fazem parte do repositório. Como elas não possuem matrícula, o vínculo com o cadastro oficial permanece pendente até conferência do RH. Consulte [docs/treinamento-desenvolvimento.md](docs/treinamento-desenvolvimento.md) e [docs/perfil-comportamental.md](docs/perfil-comportamental.md).
 
 ## Universidade Corporativa
 
@@ -173,7 +178,7 @@ O envio usa o protocolo TUS, com retomada automática e barra de progresso. O bu
 
 1. Execute a migração `20260813_006_fundacao_colaborador_360.sql` somente depois das migrações 001 a 005.
 2. Abra **Gestão de Pessoas > Saúde do sistema** e execute o diagnóstico.
-3. Complete o cadastro mestre em **Colaborador 360**.
+3. Complete o cadastro mestre manualmente ou use **Importar ativos** após executar a migração 012. A prévia rejeita rodapés e duplicidades antes da gravação.
 4. Confira as sugestões de vínculo com dados importados; o sistema nunca confirma pessoas automaticamente apenas pela semelhança do nome.
 5. Abra **Pendências e alertas** para sincronizar condições automáticas, criar tarefas e acompanhar a resolução.
 

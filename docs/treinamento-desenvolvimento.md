@@ -77,7 +77,9 @@ O menu interno organiza a jornada em 13 áreas:
 
 A Matriz 9-Box original permanece disponível como visão complementar. Nenhum dado ou fluxo anterior foi removido.
 
-O Perfil Comportamental reorganiza somente as notas comportamentais já presentes na avaliação; não constitui teste psicológico, diagnóstico ou decisão automatizada. O potencial do 9-Box é estimado somente quando existem notas nas competências declaradas. O ROI exige que o usuário informe um benefício financeiro mensurado. Custos por Setor usa o texto informado em público-alvo/setor, separa valores sem alocação e não inventa rateios. A aplicação não usa notas, potencial ou retorno padrão para preencher ausências.
+O Perfil Comportamental possui duas fontes separadas: o questionário de autopercepção D/I/S/C respondido por link individual e a leitura complementar das competências já presentes na avaliação de desempenho. Nenhuma delas constitui teste psicológico, diagnóstico, prova de aptidão ou decisão automatizada. Convites e resultados são versionados, protegidos por RLS e acessíveis ao RH e ao próprio titular autenticado. Consulte [perfil-comportamental.md](perfil-comportamental.md).
+
+O potencial do 9-Box é estimado somente quando existem notas nas competências declaradas. O ROI exige que o usuário informe um benefício financeiro mensurado. Custos por Setor usa o texto informado em público-alvo/setor, separa valores sem alocação e não inventa rateios. A aplicação não usa notas, potencial ou retorno padrão para preencher ausências.
 
 O bucket `td-documentos` é privado e aceita certificados e evidências em PDF, PNG, JPEG ou XLSX, com limite de 10 MB.
 
@@ -99,6 +101,8 @@ Execute no SQL Editor do Supabase:
 ```text
 database/migrations/20260813_003_treinamento_desenvolvimento.sql
 database/migrations/20260813_005_programas_estrategicos.sql
+database/migrations/20260813_011_perfil_comportamental_colaborador.sql
+database/migrations/20260813_012_importacao_cadastro_mestre.sql
 ```
 
 Depois, atualize a implantação da Vercel. Este módulo não adiciona novas variáveis de ambiente.
