@@ -13,7 +13,8 @@
 - adiciona importação controlada do cadastro mestre a partir de XLSX, com prévia, deduplicação, hash e auditoria;
 - cria setores, equipes e funções ausentes sem sobrescrever cadastros existentes;
 - corrige a compatibilidade entre `setores.created_at` do schema inicial e `setores.criado_em` usado pela importação;
-- adiciona as migrações 011, 012 e 013 e os diagnósticos de perfil e importação;
+- preenche o nível de novas funções como `Não informado`, sem inferir senioridade pelo nome do cargo;
+- adiciona as migrações 011, 012, 013 e 014 e os diagnósticos de perfil e importação;
 - explicita que o questionário não é teste psicológico, diagnóstico, prova de aptidão ou decisão automática.
 
 ## 0.11.0 — 2026-08-13

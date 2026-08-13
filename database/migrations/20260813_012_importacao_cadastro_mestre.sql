@@ -136,7 +136,7 @@ begin
       order by created_at limit 1;
 
       if v_cargo_id is null then
-        insert into public.cargos(cargo) values (left(v_funcao, 255))
+        insert into public.cargos(cargo, nivel) values (left(v_funcao, 255), 'Não informado')
         returning id into v_cargo_id;
       end if;
     end if;

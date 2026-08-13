@@ -104,6 +104,7 @@ database/migrations/20260813_005_programas_estrategicos.sql
 database/migrations/20260813_011_perfil_comportamental_colaborador.sql
 database/migrations/20260813_012_importacao_cadastro_mestre.sql
 database/migrations/20260813_013_compatibilidade_importacao_colaboradores.sql
+database/migrations/20260813_014_compatibilidade_cargos_importacao.sql
 ```
 
 Depois, atualize a implantação da Vercel. Este módulo não adiciona novas variáveis de ambiente.
