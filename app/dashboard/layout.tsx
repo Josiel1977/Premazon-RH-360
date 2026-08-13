@@ -55,7 +55,10 @@ const menuGroups: MenuGroup[] = [
   {
     name: "Admissão e Onboarding",
     icon: ClipboardCheck,
-    links: [{ name: "Jornada admissional", href: "/dashboard/admissao", icon: UserCheck, badge: "NOVO" }],
+    links: [
+      { name: "Jornada admissional", href: "/dashboard/admissao", icon: UserCheck, badge: "NOVO" },
+      { name: "Conteúdos e regras", href: "/dashboard/admissao/conteudos", icon: BookOpenCheck, badge: "NOVO" },
+    ],
   },
   {
     name: "Treinamento e Desenvolvimento",
@@ -115,7 +118,7 @@ const menuGroups: MenuGroup[] = [
 ];
 
 function routeIsActive(pathname: string, href: string) {
-  if (href === "/dashboard") return pathname === href;
+  if (href === "/dashboard" || href === "/dashboard/admissao") return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
