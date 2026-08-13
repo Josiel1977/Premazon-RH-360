@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 0.11.0 — 2026-08-13
+
+- reorganiza Treinamento e Desenvolvimento em 13 etapas, do diagnóstico aos indicadores;
+- separa Avaliação de Desempenho, Perfil Comportamental, Matriz de Competências e Análise de Lacunas;
+- mantém PDI, catálogo, LNT, orçamento, cronograma e histórico já existentes;
+- adiciona Custos por Setor usando somente a alocação informada, sem rateio ou valores simulados;
+- adiciona painel de Indicadores com desempenho, conclusão, participação, frequência, carga horária e PDIs;
+- preserva a Matriz 9-Box como visão complementar;
+- explicita que o perfil comportamental não é teste psicológico, diagnóstico ou decisão automática;
+- não exige nova migração de banco de dados.
+
 ## 0.10.0 — 2026-08-13
 
 - adiciona CPF, nome completo da mãe e data de nascimento ao formulário público de candidatura;
