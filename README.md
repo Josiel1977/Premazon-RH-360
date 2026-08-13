@@ -2,7 +2,7 @@
 
 Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo**, **Recrutamento & Seleção** e **Treinamento & Desenvolvimento**.
 
-Versão atual: **0.3.0**.
+Versão atual: **0.4.0**.
 
 ## O que já está disponível
 
@@ -24,6 +24,10 @@ Versão atual: **0.3.0**.
 - mapeamento das 15 competências reais, sem notas artificiais para campos vazios;
 - catálogo de cursos, plano anual, custos, frequência, certificados e eficácia;
 - consolidação de necessidades e gaps por setor e competência.
+- Central de RH premium com navegação responsiva nas nove áreas estratégicas;
+- Universidade Corporativa com cursos, módulos e videoaulas privadas;
+- upload retomável de vídeos, publicação, matrículas e acompanhamento de progresso;
+- reprodução por URL temporária e acesso protegido por perfil e matrícula.
 
 ## Executar localmente
 
@@ -55,6 +59,7 @@ No SQL Editor do Supabase, execute nesta ordem:
 2. `database/migrations/20260812_001_rumo_ao_topo.sql` — identidade, permissões, auditoria e módulo Rumo ao Topo.
 3. `database/migrations/20260812_002_recrutamento_selecao.sql` — vagas, candidaturas, RLS e bucket privado de currículos.
 4. `database/migrations/20260813_003_treinamento_desenvolvimento.sql` — LNT, desempenho, catálogo, plano anual, participações e eficácia.
+5. `database/migrations/20260813_004_universidade_corporativa.sql` — cursos online, módulos, videoaulas, matrículas, progresso, certificados e bucket privado.
 
 Depois, em **Authentication > Users**, crie o primeiro usuário. Copie o UUID dele e execute no SQL Editor:
 
@@ -99,6 +104,16 @@ Na Vercel, cadastre as três variáveis acima em **Project Settings > Environmen
 6. Depois da execução, registre participantes, frequência, certificado e avaliação de eficácia.
 
 As planilhas de origem contêm dados pessoais e não fazem parte do repositório. Como elas não possuem matrícula, o vínculo com o cadastro oficial permanece pendente até conferência do RH. Consulte [docs/treinamento-desenvolvimento.md](docs/treinamento-desenvolvimento.md).
+
+## Universidade Corporativa
+
+1. Execute a migração `20260813_004_universidade_corporativa.sql` no Supabase.
+2. Abra **Treinamento e Desenvolvimento > Cursos em vídeo**.
+3. Crie um curso, organize os módulos e envie as videoaulas.
+4. Revise a trilha e publique o curso para liberar matrículas.
+5. O aluno matriculado assiste por um link temporário e tem o progresso salvo automaticamente.
+
+O envio usa o protocolo TUS, com retomada automática e barra de progresso. O bucket privado aceita MP4, WebM e MOV de até 500 MB, mas o limite global do projeto Supabase também precisa permitir o tamanho do arquivo. Projetos gratuitos são limitados a 50 MB por arquivo; videoaulas de aproximadamente 20 minutos normalmente exigem um limite maior. Consulte [docs/universidade-corporativa.md](docs/universidade-corporativa.md).
 
 ## Qualidade
 

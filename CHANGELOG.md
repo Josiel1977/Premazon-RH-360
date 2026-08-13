@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 0.4.0 — 2026-08-13
+
+- menu lateral premium, responsivo e agrupado nas nove áreas estratégicas de RH;
+- hubs preparados para Admissão, Benefícios, Clima, Carreira e Relações Trabalhistas;
+- Universidade Corporativa com catálogo, construtor de cursos, módulos e videoaulas;
+- upload privado e retomável por TUS, com progresso, cancelamento e validação de arquivo;
+- publicação de cursos, autoinscrição, reprodução protegida e acompanhamento de conclusão;
+- banco relacional, RLS por matrícula, auditoria e bucket privado para vídeos;
+- documentação operacional e testes das regras de URL, nome de arquivo e duração.
+
 ## 0.3.0 — 2026-08-13
 
 - módulo operacional de Treinamento & Desenvolvimento;
