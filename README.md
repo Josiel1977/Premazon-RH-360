@@ -1,8 +1,8 @@
 # Premazon RH 360
 
-Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo** e **Recrutamento & Seleção**.
+Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo**, **Recrutamento & Seleção** e **Treinamento & Desenvolvimento**.
 
-Versão atual: **0.2.0**.
+Versão atual: **0.3.0**.
 
 ## O que já está disponível
 
@@ -14,12 +14,16 @@ Versão atual: **0.2.0**.
 - validação e prévia antes da gravação;
 - histórico mensal de ciclos e importações;
 - indicadores, filtros, gráficos e relatório detalhado do Rumo ao Topo;
-- planilha-modelo para download dentro da própria plataforma.
+- planilha-modelo para download dentro da própria plataforma;
 - criação e gestão de vagas de Recrutamento & Seleção;
 - link público exclusivo para candidatura sem login;
 - compartilhamento direto por WhatsApp, e-mail ou cópia do link;
 - currículo em bucket privado e acesso interno por URL temporária;
 - pipeline de candidatos com histórico de mudança de etapa.
+- importação revisável de LNT e avaliação de desempenho;
+- mapeamento das 15 competências reais, sem notas artificiais para campos vazios;
+- catálogo de cursos, plano anual, custos, frequência, certificados e eficácia;
+- consolidação de necessidades e gaps por setor e competência.
 
 ## Executar localmente
 
@@ -50,6 +54,7 @@ No SQL Editor do Supabase, execute nesta ordem:
 1. `database/schema.sql` — estrutura inicial do sistema;
 2. `database/migrations/20260812_001_rumo_ao_topo.sql` — identidade, permissões, auditoria e módulo Rumo ao Topo.
 3. `database/migrations/20260812_002_recrutamento_selecao.sql` — vagas, candidaturas, RLS e bucket privado de currículos.
+4. `database/migrations/20260813_003_treinamento_desenvolvimento.sql` — LNT, desempenho, catálogo, plano anual, participações e eficácia.
 
 Depois, em **Authentication > Users**, crie o primeiro usuário. Copie o UUID dele e execute no SQL Editor:
 
@@ -83,6 +88,17 @@ As regras e o desenho técnico do módulo estão em [docs/rumo-ao-topo.md](docs/
 6. Fechar a vaga desativa o formulário público imediatamente.
 
 Na Vercel, cadastre as três variáveis acima em **Project Settings > Environment Variables** e faça um novo deploy. A planilha histórica de vagas enviada como referência contém nomes reais; por isso, seus registros não fazem parte do repositório. A arquitetura do módulo está em [docs/recrutamento-selecao.md](docs/recrutamento-selecao.md).
+
+## Treinamento & Desenvolvimento
+
+1. Execute a migração `20260813_003_treinamento_desenvolvimento.sql` no Supabase.
+2. Abra **Treinamento & Desenvolvimento > Importar bases**.
+3. Importe primeiro a LNT e confira a prévia antes de gravar.
+4. Importe a avaliação de desempenho; respostas sem nota serão rejeitadas com aviso em vez de receber média artificial.
+5. Priorize as necessidades, mantenha o catálogo e distribua as ações no plano anual.
+6. Depois da execução, registre participantes, frequência, certificado e avaliação de eficácia.
+
+As planilhas de origem contêm dados pessoais e não fazem parte do repositório. Como elas não possuem matrícula, o vínculo com o cadastro oficial permanece pendente até conferência do RH. Consulte [docs/treinamento-desenvolvimento.md](docs/treinamento-desenvolvimento.md).
 
 ## Qualidade
 

@@ -23,7 +23,7 @@ const menuItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Colaboradores", href: "/dashboard/colaboradores", icon: Users },
   { name: "Recrutamento & Seleção", href: "/dashboard/recrutamento", icon: UserPlus },
-  { name: "Treinamentos", href: "/dashboard/treinamentos", icon: BookOpen },
+  { name: "Treinamento & Desenvolvimento", href: "/dashboard/treinamentos", icon: BookOpen },
   { name: "Avaliações", href: "/dashboard/avaliacoes", icon: CheckSquare },
   { name: "Certificados", href: "/dashboard/certificados", icon: Award },
   { name: "PDIs", href: "/dashboard/pdis", icon: Target },
