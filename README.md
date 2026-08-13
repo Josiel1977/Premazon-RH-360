@@ -2,7 +2,7 @@
 
 Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo**, **Recrutamento & Seleção** e **Treinamento & Desenvolvimento**.
 
-Versão atual: **0.5.0**.
+Versão atual: **0.6.0**.
 
 ## O que já está disponível
 
@@ -31,6 +31,11 @@ Versão atual: **0.5.0**.
 - áreas internas completas dos três programas estratégicos, preservando a identidade de cada solução;
 - PDI individual persistente, matriz de competências, cronograma, custos, ROI verificável e 9-Box;
 - histórico analítico de R&S com importação CSV, relatórios para diretoria e custos sem valores artificiais.
+- dashboard executivo conectado aos registros reais, sem nomes ou métricas demonstrativas;
+- Colaborador 360 com cadastro mestre, estrutura organizacional e histórico integrado de desempenho, PDI, treinamentos, Universidade e Rumo ao Topo;
+- conferência humana antes de vincular registros importados ao cadastro oficial do colaborador;
+- Central de Pendências com tarefas manuais e alertas automáticos de SLA, PDI, LNT, eficácia e certificados;
+- Saúde do Sistema com diagnóstico seguro de migrações, buckets privados, RLS, ambiente e acesso, sem exibir segredos.
 
 ## Executar localmente
 
@@ -64,6 +69,7 @@ No SQL Editor do Supabase, execute nesta ordem:
 4. `database/migrations/20260813_003_treinamento_desenvolvimento.sql` — LNT, desempenho, catálogo, plano anual, participações e eficácia.
 5. `database/migrations/20260813_004_universidade_corporativa.sql` — cursos online, módulos, videoaulas, matrículas, progresso, certificados e bucket privado.
 6. `database/migrations/20260813_005_programas_estrategicos.sql` — PDI individual e histórico analítico de Recrutamento & Seleção.
+7. `database/migrations/20260813_006_fundacao_colaborador_360.sql` — Saúde do Sistema, Colaborador 360 e Central de Pendências.
 
 Depois, em **Authentication > Users**, crie o primeiro usuário. Copie o UUID dele e execute no SQL Editor:
 
@@ -119,6 +125,16 @@ As planilhas de origem contêm dados pessoais e não fazem parte do repositório
 5. O aluno matriculado assiste por um link temporário e tem o progresso salvo automaticamente.
 
 O envio usa o protocolo TUS, com retomada automática e barra de progresso. O bucket privado aceita MP4, WebM e MOV de até 500 MB, mas o limite global do projeto Supabase também precisa permitir o tamanho do arquivo. Projetos gratuitos são limitados a 50 MB por arquivo; videoaulas de aproximadamente 20 minutos normalmente exigem um limite maior. Consulte [docs/universidade-corporativa.md](docs/universidade-corporativa.md).
+
+## Fundação RH 360
+
+1. Execute a migração `20260813_006_fundacao_colaborador_360.sql` somente depois das migrações 001 a 005.
+2. Abra **Gestão de Pessoas > Saúde do sistema** e execute o diagnóstico.
+3. Complete o cadastro mestre em **Colaborador 360**.
+4. Confira as sugestões de vínculo com dados importados; o sistema nunca confirma pessoas automaticamente apenas pela semelhança do nome.
+5. Abra **Pendências e alertas** para sincronizar condições automáticas, criar tarefas e acompanhar a resolução.
+
+As regras funcionais, fontes dos alertas e permissões estão em [docs/fundacao-rh360.md](docs/fundacao-rh360.md).
 
 ## Qualidade
 

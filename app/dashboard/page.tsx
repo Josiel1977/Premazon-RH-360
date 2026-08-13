@@ -1,250 +1,112 @@
 "use client";
-import { AlertTriangle, Clock, FileText, Target, TrendingUp } from "lucide-react";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from "recharts";
 
-const treinamentosPorSetor = [
-  { name: 'Operação', value: 45 },
-  { name: 'Administrativo', value: 25 },
-  { name: 'Comercial', value: 15 },
-  { name: 'Logística', value: 30 },
-  { name: 'TI', value: 10 },
-];
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  AlertTriangle, BriefcaseBusiness, CheckCircle2, Clock3, GraduationCap,
+  Loader2, RefreshCw, Siren, Target, Users,
+} from "lucide-react";
+import { MetricCard, MiniBarList, Pill, ProgramPanel, SectionTitle } from "@/app/dashboard/_components/program-widgets";
+import { groupByLabel, isPendingOverdue, pendingUrgency, type PendingPriority, type PendingStatus } from "@/lib/rh360";
+import { supabase } from "@/lib/supabase";
 
-const statusAvaliacoes = [
-  { name: 'Aprovados', value: 65 },
-  { name: 'Reprovados', value: 15 },
-  { name: 'Pendentes', value: 20 },
-];
+type Employee = { id: string; nome: string; status: string; setor_id: string | null; cargo_id: string | null; email: string | null; data_admissao: string | null };
+type Sector = { id: string; nome: string };
+type Vacancy = { id: string; status: string };
+type Application = { id: string; etapa: string; status: string };
+type Training = { id: string; status: string; carga_horaria: number | string };
+type Pdi = { id: string; status: string; data_limite: string | null };
+type Pending = { id: string; titulo: string; descricao: string | null; origem: string; prioridade: PendingPriority; status: PendingStatus; prazo: string | null; link_acao: string | null; criado_em: string };
+type QueryResult<T> = { data: T[] | null; error: { message: string } | null };
 
-const COLORS = ['#1e3a8a', '#eab308', '#ef4444', '#10b981', '#6b7280'];
-const PIE_COLORS = ['#10b981', '#ef4444', '#f59e0b'];
+const trainingStatus: Record<string, string> = { planejado: "Planejado", inscricoes: "Inscrições", em_andamento: "Em andamento", concluido: "Concluído", cancelado: "Cancelado" };
+const pdiStatus: Record<string, string> = { rascunho: "Rascunho", ativo: "Ativo", concluido: "Concluído", cancelado: "Cancelado" };
+const applicationStages: Record<string, string> = { triagem: "Triagem", entrevista_rh: "Entrevista RH", teste_tecnico: "Teste técnico", entrevista_gestor: "Entrevista gestor", proposta: "Proposta", admissao: "Admissão", encerrado: "Encerrado" };
+const originLabels: Record<string, string> = { recrutamento: "Recrutamento", treinamento: "Treinamento", pdi: "PDI", universidade: "Universidade", rumo_topo: "Rumo ao Topo", cadastro: "Cadastro", sistema: "Sistema", manual: "Manual" };
+const priorityLabels: Record<PendingPriority, string> = { baixa: "Baixa", media: "Média", alta: "Alta", critica: "Crítica" };
 
 export default function DashboardPage() {
-  return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Painel de Indicadores</h2>
-          <p className="text-sm text-gray-500 mt-1">Visão geral e métricas de RH</p>
-        </div>
-      </div>
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [sectors, setSectors] = useState<Sector[]>([]);
+  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [trainings, setTrainings] = useState<Training[]>([]);
+  const [pdis, setPdis] = useState<Pdi[]>([]);
+  const [pendencies, setPendencies] = useState<Pending[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col relative overflow-hidden">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Horas de Treinamento</p>
-              <h3 className="text-3xl font-bold text-gray-800">1.240h</h3>
-            </div>
-            <div className="p-3 bg-blue-50 rounded-lg text-primary">
-              <Clock className="w-6 h-6" />
-            </div>
-          </div>
-          <div className="mt-4 flex items-center text-sm">
-            <TrendingUp className="w-4 h-4 text-emerald-500 mr-1" />
-            <span className="text-emerald-500 font-medium">+12%</span>
-            <span className="text-gray-400 ml-2">este mês</span>
-          </div>
-        </div>
+  const loadDashboard = useCallback(async () => {
+    setLoading(true); setMessage(null);
+    const results = await Promise.all([
+      supabase.from("colaboradores_v2").select("id,nome,status,setor_id,cargo_id,email,data_admissao"),
+      supabase.from("setores").select("id,nome").eq("ativo", true),
+      supabase.from("rs_vagas").select("id,status"),
+      supabase.from("rs_candidaturas").select("id,etapa,status"),
+      supabase.from("td_treinamentos").select("id,status,carga_horaria"),
+      supabase.from("td_pdis").select("id,status,data_limite"),
+      supabase.from("rh360_pendencias").select("id,titulo,descricao,origem,prioridade,status,prazo,link_acao,criado_em").order("criado_em", { ascending: false }).limit(200),
+    ]) as unknown as [QueryResult<Employee>, QueryResult<Sector>, QueryResult<Vacancy>, QueryResult<Application>, QueryResult<Training>, QueryResult<Pdi>, QueryResult<Pending>];
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">% de Conclusão</p>
-              <h3 className="text-3xl font-bold text-gray-800">85%</h3>
-            </div>
-            <div className="p-3 bg-emerald-50 rounded-lg text-emerald-600">
-              <Target className="w-6 h-6" />
-            </div>
-          </div>
-          <div className="mt-4 w-full bg-gray-100 rounded-full h-2">
-            <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-          </div>
-        </div>
+    const [employeeResult, sectorResult, vacancyResult, applicationResult, trainingResult, pdiResult, pendingResult] = results;
+    setEmployees(employeeResult.data ?? []); setSectors(sectorResult.data ?? []);
+    setVacancies(vacancyResult.data ?? []); setApplications(applicationResult.data ?? []);
+    setTrainings(trainingResult.data ?? []); setPdis(pdiResult.data ?? []); setPendencies(pendingResult.data ?? []);
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">NRs Vencidas</p>
-              <h3 className="text-3xl font-bold text-gray-800">3</h3>
-            </div>
-            <div className="p-3 bg-red-50 rounded-lg text-red-500">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-          </div>
-          <div className="mt-4 text-sm text-red-500 font-medium">
-            Ação imediata requerida
-          </div>
-        </div>
+    const coreErrors = results.slice(0, 6).flatMap((result) => result.error ? [result.error.message] : []);
+    if (coreErrors.length) setMessage(`Alguns indicadores não puderam ser carregados: ${coreErrors[0]}`);
+    else if (pendingResult.error) setMessage("Execute a migração 006 no Supabase para ativar pendências e alertas no painel.");
+    setUpdatedAt(new Date()); setLoading(false);
+  }, []);
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">PDIs Concluídos</p>
-              <h3 className="text-3xl font-bold text-gray-800">15</h3>
-            </div>
-            <div className="p-3 bg-yellow-50 rounded-lg text-secondary">
-              <FileText className="w-6 h-6" />
-            </div>
-          </div>
-          <div className="mt-4 flex items-center text-sm">
-            <span className="text-gray-500">De 45 planejados</span>
-          </div>
-        </div>
-      </div>
+  useEffect(() => { const timer = window.setTimeout(() => void loadDashboard(), 0); return () => window.clearTimeout(timer); }, [loadDashboard]);
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Bar Chart */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:col-span-2">
-          <h3 className="text-lg font-bold text-gray-800 mb-6">Treinamentos por Setor (Horas)</h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={treinamentosPorSetor}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#6b7280', fontSize: 12}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#6b7280', fontSize: 12}} />
-                <Tooltip 
-                  cursor={{fill: '#f9fafb'}}
-                  contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
-                />
-                <Bar dataKey="value" fill="#1e3a8a" radius={[4, 4, 0, 0]}>
-                  {treinamentosPorSetor.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+  const activeEmployees = useMemo(() => employees.filter((item) => item.status === "ativo"), [employees]);
+  const openVacancies = vacancies.filter((item) => item.status === "aberta");
+  const activePendencies = useMemo(() => pendencies.filter((item) => !["concluida", "cancelada"].includes(item.status)), [pendencies]);
+  const overduePendencies = activePendencies.filter((item) => isPendingOverdue(item.prazo, item.status));
+  const plannedTrainingHours = trainings.filter((item) => item.status !== "cancelado").reduce((sum, item) => sum + Number(item.carga_horaria || 0), 0);
+  const incompleteEmployees = activeEmployees.filter((item) => !item.setor_id || !item.cargo_id || !item.email || !item.data_admissao);
 
-        {/* Pie Chart & Metrics */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
-          <h3 className="text-lg font-bold text-gray-800 mb-2">Status das Avaliações</h3>
-          <div className="h-48 my-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={statusAvaliacoes}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {statusAvaliacoes.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          
-          <div className="mt-auto border-t border-gray-100 pt-4">
-            <h4 className="text-sm font-medium text-gray-500 mb-1">Custos com Treinamentos</h4>
-            <div className="text-2xl font-bold text-gray-800">R$ 12.500,00</div>
-            <p className="text-xs text-gray-400 mt-1">Acumulado do ano</p>
-          </div>
-        </div>
+  const employeesBySector = useMemo(() => {
+    const names = new Map(sectors.map((item) => [item.id, item.nome]));
+    return groupByLabel(activeEmployees, (item) => item.setor_id ? names.get(item.setor_id) ?? "Setor não localizado" : "Sem setor").slice(0, 8);
+  }, [activeEmployees, sectors]);
+  const trainingByStatus = useMemo(() => groupByLabel(trainings, (item) => trainingStatus[item.status] ?? item.status), [trainings]);
+  const pdiByStatus = useMemo(() => groupByLabel(pdis, (item) => pdiStatus[item.status] ?? item.status), [pdis]);
+  const candidatesByStage = useMemo(() => groupByLabel(applications.filter((item) => item.status === "ativa"), (item) => applicationStages[item.etapa] ?? item.etapa), [applications]);
+  const urgentPendencies = useMemo(() => [...activePendencies].sort((a, b) => pendingUrgency(b.prioridade, b.prazo, b.status) - pendingUrgency(a.prioridade, a.prazo, a.status)).slice(0, 6), [activePendencies]);
 
-      </div>
-
-      {/* Lists Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Ranking */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Ranking de Engajamento</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-gray-500 uppercase bg-gray-50 rounded-t-lg">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Colaborador</th>
-                  <th className="px-4 py-3 font-medium">Unidade</th>
-                  <th className="px-4 py-3 font-medium text-right">Horas</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-800 flex items-center">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 text-primary flex items-center justify-center text-xs mr-2">1</div>
-                    Colaborador Exemplo A
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">Matriz</td>
-                  <td className="px-4 py-3 font-bold text-primary text-right">45h</td>
-                </tr>
-                <tr className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-800 flex items-center">
-                    <div className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs mr-2">2</div>
-                    Colaborador Exemplo B
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">Filial Sul</td>
-                  <td className="px-4 py-3 font-bold text-primary text-right">38h</td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-800 flex items-center">
-                    <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xs mr-2">3</div>
-                    Colaborador Exemplo C
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">Logística</td>
-                  <td className="px-4 py-3 font-bold text-primary text-right">32h</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Média de Avaliações */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Média das Avaliações</h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between mb-1 text-sm">
-                <span className="font-medium text-gray-700">NR-10 Básico</span>
-                <span className="font-bold text-primary">9.2</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2">
-                <div className="bg-primary h-2 rounded-full" style={{ width: '92%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1 text-sm">
-                <span className="font-medium text-gray-700">Liderança Efetiva</span>
-                <span className="font-bold text-primary">8.8</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2">
-                <div className="bg-primary h-2 rounded-full" style={{ width: '88%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1 text-sm">
-                <span className="font-medium text-gray-700">Integração de Novos</span>
-                <span className="font-bold text-primary">9.5</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2">
-                <div className="bg-primary h-2 rounded-full" style={{ width: '95%' }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+  return <div className="mx-auto max-w-[1500px] space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <SectionTitle title="Dashboard Executivo RH" description="Indicadores integrados calculados sobre os registros reais da plataforma." />
+      <button type="button" onClick={() => void loadDashboard()} disabled={loading} className="flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-black text-slate-700 disabled:opacity-60"><RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />Atualizar dados</button>
     </div>
-  );
+    {message && <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800"><AlertTriangle className="mr-2 inline h-4 w-4" />{message}</div>}
+    {loading ? <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-16 text-sm text-slate-500"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Consolidando indicadores…</div> : <>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Colaboradores ativos" value={activeEmployees.length} detail={`${employees.length} cadastro(s) no total`} icon={Users} tone="blue" />
+        <MetricCard label="Vagas abertas" value={openVacancies.length} detail={`${applications.filter((item) => item.status === "ativa").length} candidatura(s) ativa(s)`} icon={BriefcaseBusiness} tone="violet" />
+        <MetricCard label="Carga horária no plano" value={`${plannedTrainingHours.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}h`} detail={`${trainings.filter((item) => item.status !== "cancelado").length} treinamento(s) não cancelado(s)`} icon={GraduationCap} tone="emerald" />
+        <MetricCard label="Pendências ativas" value={activePendencies.length} detail={`${overduePendencies.length} com prazo vencido`} icon={Siren} tone={overduePendencies.length ? "red" : "amber"} />
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-2">
+        <ProgramPanel title="Quadro por setor" description="Distribuição dos colaboradores com status ativo"><MiniBarList items={employeesBySector} empty="Cadastre colaboradores e setores para visualizar a distribuição." color="bg-blue-700" /></ProgramPanel>
+        <ProgramPanel title="Pipeline de candidatos" description="Candidaturas ativas por etapa"><MiniBarList items={candidatesByStage} empty="Nenhuma candidatura ativa no momento." color="bg-violet-600" /></ProgramPanel>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-3">
+        <ProgramPanel title="Treinamentos" description="Ações por status"><MiniBarList items={trainingByStatus} empty="Nenhum treinamento cadastrado." color="bg-emerald-600" /></ProgramPanel>
+        <ProgramPanel title="Planos de desenvolvimento" description="PDIs por status"><MiniBarList items={pdiByStatus} empty="Nenhum PDI cadastrado." color="bg-amber-500" /></ProgramPanel>
+        <ProgramPanel title="Qualidade do cadastro" description="Campos essenciais do Colaborador 360"><div className="space-y-4 p-5"><div className="flex items-center justify-between rounded-xl bg-slate-50 p-4"><span className="text-xs font-bold text-slate-600">Cadastros completos</span><span className="text-xl font-black text-emerald-700">{Math.max(activeEmployees.length - incompleteEmployees.length, 0)}</span></div><div className="flex items-center justify-between rounded-xl bg-amber-50 p-4"><span className="text-xs font-bold text-amber-800">Precisam de complemento</span><span className="text-xl font-black text-amber-700">{incompleteEmployees.length}</span></div><Link href="/dashboard/colaboradores" className="flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-xs font-black text-white">Abrir Colaborador 360</Link></div></ProgramPanel>
+      </div>
+
+      <ProgramPanel title="Prioridades para ação" description="Pendências ativas ordenadas por criticidade e prazo" action={<Link href="/dashboard/pendencias" className="text-xs font-black text-primary">Ver central completa</Link>}>
+        <div className="divide-y divide-slate-100">{urgentPendencies.map((item) => { const overdue = isPendingOverdue(item.prazo, item.status); return <article key={item.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center"><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${overdue || item.prioridade === "critica" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{overdue ? <Clock3 className="h-5 w-5" /> : <Target className="h-5 w-5" />}</span><div className="min-w-0 flex-1"><div className="flex flex-wrap gap-2"><Pill tone={item.prioridade === "critica" ? "red" : item.prioridade === "alta" ? "amber" : "blue"}>{priorityLabels[item.prioridade]}</Pill><Pill>{originLabels[item.origem] ?? item.origem}</Pill>{overdue && <Pill tone="red">Vencida</Pill>}</div><h3 className="mt-2 text-sm font-black text-slate-900">{item.titulo}</h3><p className="mt-1 line-clamp-1 text-xs text-slate-500">{item.descricao || "Sem descrição adicional."}</p></div>{item.link_acao && <Link href={item.link_acao} className="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-[10px] font-black text-primary">Abrir ação</Link>}</article>; })}{!urgentPendencies.length && <div className="p-10 text-center"><CheckCircle2 className="mx-auto h-10 w-10 text-emerald-300" /><p className="mt-3 text-sm font-black text-slate-700">Nenhuma pendência ativa</p><p className="mt-1 text-xs text-slate-500">A sincronização automática preencherá esta área quando houver prazos ou necessidades.</p></div>}</div>
+      </ProgramPanel>
+      <p className="text-right text-[10px] font-semibold text-slate-400">{updatedAt ? `Atualizado em ${updatedAt.toLocaleString("pt-BR")}` : ""}</p>
+    </>}
+  </div>;
 }

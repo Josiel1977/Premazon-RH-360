@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 0.6.0 — 2026-08-13
+
+- dashboard executivo reconstruído sobre dados reais de colaboradores, R&S, treinamentos, PDIs e pendências;
+- Colaborador 360 com cadastro mestre ampliado, estrutura organizacional, resumo profissional e histórico integrado;
+- sugestões de vínculo por nome exato normalizado, sempre dependentes da confirmação humana do RH;
+- Central de Pendências com fila priorizada, filtros, tarefas manuais e ações de acompanhamento;
+- alertas automáticos para vagas fora do SLA, PDIs vencidos, LNT prioritária, eficácia pendente e certificados próximos do vencimento;
+- Saúde do Sistema com verificação segura de migrações, buckets, RLS, variáveis de ambiente e runtime;
+- registro das migrações instaladas, RLS, auditoria e permissões por perfil para a nova fundação;
+- mensagens da Universidade Corporativa passam a preservar o erro real do Supabase e orientar a migração correta.
+
 ## 0.5.0 — 2026-08-13
 
 - navegação interna própria e responsiva para Rumo ao Topo, T&D e Recrutamento & Seleção;

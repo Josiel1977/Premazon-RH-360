@@ -125,6 +125,12 @@ function videoDuration(file: File) {
   });
 }
 
+function errorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") return error.message;
+  return fallback;
+}
+
 export default function VideoCoursesPage() {
   const [view, setView] = useState<View>("catalogo");
   const [courses, setCourses] = useState<Course[]>([]);
@@ -206,7 +212,7 @@ export default function VideoCoursesPage() {
       setProgress((progressResult.data ?? []) as ProgressRecord[]);
       setSelectedCourseId((current) => current && courseIds.includes(current) ? current : courseIds[0] ?? null);
     } catch (error) {
-      const text = error instanceof Error ? error.message : "Não foi possível carregar a Universidade Corporativa.";
+      const text = errorMessage(error, "Não foi possível carregar a Universidade Corporativa.");
       setMessage({
         type: "error",
         text: text.includes("td_curso") || text.includes("status_publicacao")
@@ -376,7 +382,7 @@ export default function VideoCoursesPage() {
       await loadData();
       setSelectedCourseId(selectedCourseId);
     } catch (error) {
-      setMessage({ type: "error", text: error instanceof Error ? error.message : "O upload do vídeo falhou." });
+      setMessage({ type: "error", text: errorMessage(error, "O upload do vídeo falhou.") });
     } finally {
       uploadRef.current = null;
       setUploading(false);

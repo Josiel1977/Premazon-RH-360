@@ -21,6 +21,7 @@ import {
   LogOut,
   Menu,
   Search,
+  Siren,
   ShieldCheck,
   Sparkles,
   Target,
@@ -103,7 +104,9 @@ const menuGroups: MenuGroup[] = [
     icon: Users,
     links: [
       { name: "Dashboard executivo", href: "/dashboard", icon: LayoutDashboard },
-      { name: "Colaboradores", href: "/dashboard/colaboradores", icon: Users },
+      { name: "Colaborador 360", href: "/dashboard/colaboradores", icon: Users, badge: "NOVO" },
+      { name: "Pendências e alertas", href: "/dashboard/pendencias", icon: Siren, badge: "NOVO" },
+      { name: "Saúde do sistema", href: "/dashboard/saude-sistema", icon: ShieldCheck },
       { name: "Acessos e permissões", href: "/dashboard/acessos", icon: ShieldCheck },
     ],
   },
