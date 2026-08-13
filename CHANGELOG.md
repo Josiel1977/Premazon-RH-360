@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## 0.2.0 — 2026-08-12
+
+- módulo de Recrutamento & Seleção com vagas e pipeline;
+- link público exclusivo compartilhável por WhatsApp e e-mail;
+- formulário de candidatura sem login e com consentimento LGPD;
+- currículos em armazenamento privado com links temporários;
+- migração idempotente, RLS, auditoria sem dados pessoais e documentação operacional.
+
 ## 0.1.0 — 2026-08-12
 
 - autenticação real com Supabase Auth;

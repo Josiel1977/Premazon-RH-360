@@ -22,7 +22,7 @@ import {
 const menuItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Colaboradores", href: "/dashboard/colaboradores", icon: Users },
-  { name: "Candidatos", href: "/dashboard/candidatos", icon: UserPlus },
+  { name: "Recrutamento & Seleção", href: "/dashboard/recrutamento", icon: UserPlus },
   { name: "Treinamentos", href: "/dashboard/treinamentos", icon: BookOpen },
   { name: "Avaliações", href: "/dashboard/avaliacoes", icon: CheckSquare },
   { name: "Certificados", href: "/dashboard/certificados", icon: Award },
