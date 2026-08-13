@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Award, BriefcaseBusiness, Building2, CheckCircle2, ClipboardList, Crown,
-  GraduationCap, Link2, Loader2, Mail, Pencil, Phone, Plus, Save, Search,
-  ShieldCheck, Target, UserRound, Users, X,
+  FileSpreadsheet, GraduationCap, Link2, Loader2, Mail, Pencil, Phone, Plus,
+  Save, Search, ShieldCheck, Target, Upload, UserRound, Users, X,
 } from "lucide-react";
 import { MetricCard, Pill, ProgramPanel, SectionTitle } from "@/app/dashboard/_components/program-widgets";
+import { parseColaboradoresRows, type ColaboradoresImportResult } from "@/lib/colaboradores-importacao";
 import { supabase } from "@/lib/supabase";
 import { normalizePersonName } from "@/lib/rh360";
+import { readXlsxRows } from "@/lib/xlsx-browser";
 
 type Employee = {
   id: string; auth_user_id: string | null; matricula: string | null; nome: string; nome_social: string | null;
@@ -29,11 +31,17 @@ type Course = { id: string; nome: string };
 type RumoResult = { id: string; colaborador_id: string | null; colaborador_nome_importado: string; elegivel: boolean; valor_bonus: number; faltas: number; atrasos: number; atestados: number; criado_em: string };
 type Tab = "resumo" | "desempenho" | "treinamentos" | "rumo" | "vinculos";
 type LinkCandidate = { id: string; source: "avaliacao" | "lnt" | "pdi" | "participacao" | "rumo"; table: string; title: string; detail: string };
+type EmployeeImportPreview = { file: File; hash: string; result: ColaboradoresImportResult };
 
 const fieldClass = "mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-blue-100";
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const statusLabels: Record<string, string> = { ativo: "Ativo", afastado: "Afastado", ferias: "Férias", desligado: "Desligado" };
 const contractLabels: Record<string, string> = { clt: "CLT", temporario: "Temporário", aprendiz: "Aprendiz", estagio: "Estágio", pj: "PJ", terceirizado: "Terceirizado", outro: "Outro" };
+
+async function sha256(file: File) {
+  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return Array.from(new Uint8Array(digest)).map((value) => value.toString(16).padStart(2, "0")).join("");
+}
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -57,6 +65,9 @@ export default function EmployeesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [formSector, setFormSector] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const [readingImport, setReadingImport] = useState(false);
+  const [importPreview, setImportPreview] = useState<EmployeeImportPreview | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const loadData = useCallback(async () => {
@@ -153,6 +164,44 @@ export default function EmployeesPage() {
     setSaving(false);
   }
 
+  async function readEmployeeImport(file: File | null) {
+    if (!file) return;
+    setReadingImport(true); setMessage(null); setImportPreview(null);
+    try {
+      if (!file.name.toLowerCase().endsWith(".xlsx")) throw new Error("Envie a relação de colaboradores no formato XLSX.");
+      const [rows, hash] = await Promise.all([readXlsxRows(file), sha256(file)]);
+      const result = parseColaboradoresRows(rows);
+      setImportPreview({ file, hash, result });
+      setMessage({ type: "success", text: `${result.registros.length} colaboradores reconhecidos. Confira a prévia antes de gravar.` });
+    } catch (importError) {
+      setMessage({ type: "error", text: importError instanceof Error ? importError.message : "Não foi possível ler a planilha." });
+    } finally { setReadingImport(false); }
+  }
+
+  async function saveEmployeeImport() {
+    if (!importPreview) return;
+    setSaving(true); setMessage(null);
+    const { data, error } = await supabase.rpc("rh360_importar_colaboradores", {
+      p_arquivo_nome: importPreview.file.name,
+      p_arquivo_hash: importPreview.hash,
+      p_registros: importPreview.result.registros.map((item) => ({
+        nome: item.nome,
+        setor: item.setor,
+        equipe: item.equipe,
+        funcao: item.funcao,
+      })),
+    });
+
+    if (error) {
+      setMessage({ type: "error", text: error.message.includes("rh360_importar_colaboradores") ? "Execute a migração 012 no Supabase para liberar a importação do cadastro mestre." : error.message });
+    } else {
+      const summary = data as { criados?: number; atualizados?: number; ignorados?: number } | null;
+      setMessage({ type: "success", text: `Importação concluída: ${summary?.criados ?? 0} criado(s), ${summary?.atualizados ?? 0} complementado(s) e ${summary?.ignorados ?? 0} ignorado(s).` });
+      setImportPreview(null); setImportOpen(false); await loadData();
+    }
+    setSaving(false);
+  }
+
   async function confirmLink(candidate: LinkCandidate) {
     if (!selected) return; setSaving(true);
     const allowed = new Set(["td_avaliacoes_sinais", "td_lnt_necessidades", "td_pdis", "td_participacoes", "rumo_topo_resultados"]);
@@ -170,8 +219,9 @@ export default function EmployeesPage() {
   ];
 
   return <div className="mx-auto max-w-[1500px] space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><SectionTitle title="Colaborador 360" description="Cadastro mestre e histórico integrado de desempenho, desenvolvimento, treinamentos e reconhecimento." /><button type="button" onClick={() => openForm(null)} className="flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-xs font-black text-white"><Plus className="mr-2 h-4 w-4" />Novo colaborador</button></div>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><SectionTitle title="Colaborador 360" description="Cadastro mestre e histórico integrado de desempenho, desenvolvimento, treinamentos e reconhecimento." /><div className="flex flex-col gap-2 sm:flex-row"><button type="button" onClick={() => { setImportOpen((value) => !value); setImportPreview(null); }} className="flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-black text-primary"><Upload className="mr-2 h-4 w-4" />Importar ativos</button><button type="button" onClick={() => openForm(null)} className="flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-xs font-black text-white"><Plus className="mr-2 h-4 w-4" />Novo colaborador</button></div></div>
     {message && <div className={`flex justify-between rounded-xl border px-4 py-3 text-xs font-semibold ${message.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-800"}`}><span>{message.text}</span><button type="button" onClick={() => setMessage(null)}><X className="h-4 w-4" /></button></div>}
+    {importOpen && <EmployeeImportPanel preview={importPreview} reading={readingImport} saving={saving} existingNames={new Set(employees.map((item) => normalizePersonName(item.nome)))} onRead={readEmployeeImport} onSave={saveEmployeeImport} onClose={() => { setImportOpen(false); setImportPreview(null); }} />}
     {loading ? <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-16 text-sm text-slate-500"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Carregando cadastros…</div> : <div className="grid min-h-[700px] gap-5 xl:grid-cols-[320px_1fr]">
       <ProgramPanel title="Cadastro mestre" description={`${employees.length} colaborador(es)`}><div className="border-b border-slate-100 p-3"><div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nome, matrícula, cargo ou setor" className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-xs outline-none focus:border-primary" /></div></div><div className="max-h-[650px] divide-y divide-slate-100 overflow-y-auto">{filteredEmployees.map((item) => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} className={`flex w-full items-center gap-3 p-4 text-left transition ${selectedId === item.id ? "bg-blue-50" : "hover:bg-slate-50"}`}><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-black ${selectedId === item.id ? "bg-primary text-white" : "bg-slate-100 text-slate-600"}`}>{item.nome.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span><span className="min-w-0"><span className="block truncate text-xs font-black text-slate-800">{item.nome_social || item.nome}</span><span className="mt-0.5 block truncate text-[10px] text-slate-500">{item.matricula || "Sem matrícula"} · {roleName(item.cargo_id)}</span><span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[9px] font-black ${item.status === "ativo" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{statusLabels[item.status] ?? item.status}</span></span></button>)}{!filteredEmployees.length && <p className="p-8 text-center text-xs text-slate-500">Nenhum colaborador encontrado.</p>}</div></ProgramPanel>
       {!selected ? <div className="flex items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center"><div><Users className="mx-auto h-10 w-10 text-slate-300" /><p className="mt-3 text-sm font-black text-slate-700">Selecione ou cadastre um colaborador</p></div></div> : <div className="space-y-5"><section className="overflow-hidden rounded-2xl bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-800 p-6 text-white shadow-lg"><div className="flex flex-col gap-5 lg:flex-row lg:items-center"><span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-2xl font-black ring-1 ring-white/20">{selected.nome.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()}</span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Pill tone={selected.status === "ativo" ? "emerald" : "slate"}>{statusLabels[selected.status] ?? selected.status}</Pill>{selected.auth_user_id && <span className="flex items-center text-[10px] font-black text-emerald-300"><ShieldCheck className="mr-1 h-3.5 w-3.5" />Acesso vinculado</span>}</div><h2 className="mt-2 truncate text-2xl font-black">{selected.nome_social || selected.nome}</h2>{selected.nome_social && <p className="mt-1 text-xs text-blue-200">Nome civil: {selected.nome}</p>}<p className="mt-1 text-sm text-blue-100">{roleName(selected.cargo_id)} · {sectorName(selected.setor_id)} · {branchName(selected.filial_id)}</p><p className="mt-2 text-xs text-blue-200">Matrícula {selected.matricula || "não informada"} · Gestor: {managerName(selected.gestor_id)}</p></div><div className="flex shrink-0 flex-col gap-2"><button type="button" onClick={() => openForm(selected)} className="flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-xs font-black text-primary"><Pencil className="mr-2 h-4 w-4" />Editar cadastro</button><div className="rounded-xl bg-white/10 px-4 py-2 text-center"><p className="text-[9px] font-black uppercase tracking-wide text-blue-200">Completude</p><p className="text-lg font-black">{completeness}%</p></div></div></div></section>
@@ -185,6 +235,28 @@ export default function EmployeesPage() {
     </div>}
     {formOpen && <EmployeeModal employee={editing} roles={roles} sectors={sectors} teams={teams.filter((item) => !formSector || item.parentId === formSector)} branches={branches} managers={employees.filter((item) => item.id !== editing?.id && item.status === "ativo")} formSector={formSector} setFormSector={setFormSector} saving={saving} onClose={() => setFormOpen(false)} onSubmit={saveEmployee} />}
   </div>;
+}
+
+function EmployeeImportPanel({ preview, reading, saving, existingNames, onRead, onSave, onClose }: {
+  preview: EmployeeImportPreview | null;
+  reading: boolean;
+  saving: boolean;
+  existingNames: Set<string>;
+  onRead: (file: File | null) => Promise<void>;
+  onSave: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const existing = preview?.result.registros.filter((item) => existingNames.has(normalizePersonName(item.nome))).length ?? 0;
+  return <ProgramPanel title="Importar colaboradores ativos" description="Carga controlada para o cadastro mestre; a planilha original não é enviada nem armazenada" action={<button type="button" onClick={onClose}><X className="h-4 w-4 text-slate-400" /></button>}>
+    <div className="space-y-5 p-5">
+      <label className="flex cursor-pointer flex-col items-center rounded-2xl border border-dashed border-slate-300 p-7 text-center hover:border-primary hover:bg-blue-50"><FileSpreadsheet className="h-9 w-9 text-emerald-600" /><span className="mt-3 text-xs font-black text-slate-800">Selecionar relação de colaboradores</span><span className="mt-1 text-[10px] text-slate-500">XLSX · leitura local · limite de 15 MB</span><input type="file" accept=".xlsx" className="sr-only" onChange={(event) => void onRead(event.target.files?.[0] ?? null)} />{reading && <Loader2 className="mt-3 h-5 w-5 animate-spin text-primary" />}</label>
+      {preview && <><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="Reconhecidos" value={preview.result.registros.length} detail={`Cabeçalho na linha ${preview.result.linhaCabecalho}`} icon={Users} tone="emerald" /><MetricCard label="Rejeitados" value={preview.result.linhasRejeitadas} detail="Rodapés ou linhas incompletas" icon={ClipboardList} tone={preview.result.linhasRejeitadas ? "amber" : "emerald"} /><MetricCard label="Duplicados no arquivo" value={preview.result.duplicadosNoArquivo} detail="Somente a primeira ocorrência" icon={Link2} tone={preview.result.duplicadosNoArquivo ? "amber" : "emerald"} /><MetricCard label="Já cadastrados" value={existing} detail="Não serão duplicados" icon={ShieldCheck} tone="blue" /></div>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-[10px] leading-5 text-amber-900"><strong>Qualidade cadastral:</strong> esta planilha contém nome, setor, equipe e função, mas não possui matrícula, CPF ou e-mail. Os registros serão criados como ativos e esses campos permanecerão pendentes para conferência do RH.</div>
+        <div className="overflow-x-auto rounded-xl border border-slate-200"><table className="w-full min-w-[720px] text-left text-xs"><thead className="bg-slate-50 uppercase text-slate-500"><tr><th className="px-4 py-3">Linha</th><th className="px-4 py-3">Colaborador</th><th className="px-4 py-3">Setor</th><th className="px-4 py-3">Equipe</th><th className="px-4 py-3">Função</th></tr></thead><tbody className="divide-y divide-slate-100">{preview.result.registros.slice(0, 8).map((item) => <tr key={`${item.linha_original}:${item.nome}`}><td className="px-4 py-3 text-slate-400">{item.linha_original}</td><td className="px-4 py-3 font-black text-slate-800">{item.nome}</td><td className="px-4 py-3 text-slate-600">{item.setor ?? "—"}</td><td className="px-4 py-3 text-slate-600">{item.equipe ?? "—"}</td><td className="px-4 py-3 text-slate-600">{item.funcao ?? "—"}</td></tr>)}</tbody></table></div>
+        {preview.result.avisos.length > 0 && <p className="text-[10px] leading-5 text-amber-700">{preview.result.avisos.slice(0, 3).join(" ")}{preview.result.avisos.length > 3 ? ` Mais ${preview.result.avisos.length - 3} aviso(s).` : ""}</p>}
+        <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-black text-slate-800">{preview.file.name}</p><p className="mt-1 text-[10px] text-slate-500">A confirmação cria setores, equipes e funções ausentes em uma única transação.</p></div><button type="button" disabled={saving || !preview.result.registros.length} onClick={() => void onSave()} className="flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-xs font-black text-white disabled:opacity-50">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}Confirmar importação</button></div></>}
+    </div>
+  </ProgramPanel>;
 }
 
 function SummaryTab({ employee, role, sector, branch, manager, completeness }: { employee: Employee; role: string; sector: string; branch: string; manager: string; completeness: number }) {

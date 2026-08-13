@@ -10,7 +10,9 @@
 - resolve empates sem escolher arbitrariamente um perfil e normaliza os percentuais para totalizar 100%;
 - separa o resultado respondido pelo colaborador da leitura complementar da avaliação de desempenho;
 - protege convites e resultados com RLS e restringe a administração aos perfis administrador e RH;
-- adiciona a migração e o diagnóstico 011;
+- adiciona importação controlada do cadastro mestre a partir de XLSX, com prévia, deduplicação, hash e auditoria;
+- cria setores, equipes e funções ausentes sem sobrescrever cadastros existentes;
+- adiciona as migrações e os diagnósticos 011 e 012;
 - explicita que o questionário não é teste psicológico, diagnóstico, prova de aptidão ou decisão automática.
 
 ## 0.11.0 — 2026-08-13

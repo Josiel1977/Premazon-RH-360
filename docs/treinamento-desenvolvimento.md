@@ -102,6 +102,7 @@ Execute no SQL Editor do Supabase:
 database/migrations/20260813_003_treinamento_desenvolvimento.sql
 database/migrations/20260813_005_programas_estrategicos.sql
 database/migrations/20260813_011_perfil_comportamental_colaborador.sql
+database/migrations/20260813_012_importacao_cadastro_mestre.sql
 ```
 
 Depois, atualize a implantação da Vercel. Este módulo não adiciona novas variáveis de ambiente.

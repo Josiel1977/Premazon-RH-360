@@ -38,7 +38,8 @@ export default function SystemHealthPage() {
     const onboardingPromise = supabase.rpc("rh360_diagnostico_onboarding_360");
     const candidateIdentificationPromise = supabase.rpc("rh360_diagnostico_identificacao_candidatos");
     const behavioralProfilePromise = supabase.rpc("rh360_diagnostico_perfil_comportamental");
-    const [runtime, database, dataCenter, admission, onboarding, candidateIdentification, behavioralProfile] = await Promise.allSettled([runtimePromise, databasePromise, dataCenterPromise, admissionPromise, onboardingPromise, candidateIdentificationPromise, behavioralProfilePromise]);
+    const employeeImportPromise = supabase.rpc("rh360_diagnostico_importacao_colaboradores");
+    const [runtime, database, dataCenter, admission, onboarding, candidateIdentification, behavioralProfile, employeeImport] = await Promise.allSettled([runtimePromise, databasePromise, dataCenterPromise, admissionPromise, onboardingPromise, candidateIdentificationPromise, behavioralProfilePromise, employeeImportPromise]);
     const collected: SystemCheck[] = [];
     if (runtime.status === "fulfilled") {
       collected.push(...runtime.value.checks);
@@ -102,6 +103,16 @@ export default function SystemHealthPage() {
         detalhe: "Convites individuais, respostas e resultados D/I/S/C ainda não foram preparados.",
         acao: detail?.includes("rh360_diagnostico_perfil_comportamental") ? "Execute a migração 011 no Supabase." : detail ?? "Revise a migração 011.",
         criticidade: "critica", ordem: 69,
+      });
+    }
+    if (employeeImport.status === "fulfilled" && !employeeImport.value.error) collected.push(...((employeeImport.value.data ?? []) as SystemCheck[]));
+    else {
+      const detail = employeeImport.status === "fulfilled" ? employeeImport.value.error?.message : String(employeeImport.reason);
+      collected.push({
+        chave: "migracao_012_indisponivel", titulo: "Importação do cadastro mestre indisponível", categoria: "Banco", status: "erro",
+        detalhe: "A carga controlada de colaboradores ativos ainda não foi preparada.",
+        acao: detail?.includes("rh360_diagnostico_importacao_colaboradores") ? "Execute a migração 012 no Supabase." : detail ?? "Revise a migração 012.",
+        criticidade: "critica", ordem: 70,
       });
     }
     setChecks(collected.sort((a, b) => a.ordem - b.ordem)); setLoading(false);
