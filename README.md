@@ -2,7 +2,7 @@
 
 Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo**, **Recrutamento & Seleção**, **Admissão & Onboarding** e **Treinamento & Desenvolvimento**.
 
-Versão atual: **0.10.0**.
+Versão atual: **0.11.0**.
 
 ## O que já está disponível
 
@@ -153,10 +153,11 @@ O formulário público não cria conta e não possui acesso direto ao banco. A A
 2. Abra **Treinamento & Desenvolvimento** e clique em **Importar bases** no cabeçalho do programa.
 3. Importe primeiro a LNT e confira a prévia antes de gravar.
 4. Importe a avaliação de desempenho; respostas sem nota serão rejeitadas com aviso em vez de receber média artificial.
-5. Priorize as necessidades, mantenha o catálogo e distribua as ações no plano anual.
-6. Depois da execução, registre participantes, frequência, certificado e avaliação de eficácia.
+5. Navegue pelas 13 etapas do ciclo: Dashboard, Avaliação de Desempenho, Perfil Comportamental, Matriz de Competências, Análise de Lacunas, LNT, PDI, Catálogo, Custos e Orçamento, Cronograma, Custos por Setor, Histórico e Indicadores.
+6. Priorize as necessidades, mantenha o catálogo e distribua as ações no plano anual.
+7. Depois da execução, registre participantes, frequência, certificado e avaliação de eficácia.
 
-As planilhas de origem contêm dados pessoais e não fazem parte do repositório. Como elas não possuem matrícula, o vínculo com o cadastro oficial permanece pendente até conferência do RH. Consulte [docs/treinamento-desenvolvimento.md](docs/treinamento-desenvolvimento.md).
+O Perfil Comportamental é uma leitura das competências já avaliadas, não um teste psicológico ou diagnóstico de personalidade. Custos por Setor respeita a alocação informada no campo público-alvo/setor e não faz rateios automáticos. As planilhas de origem contêm dados pessoais e não fazem parte do repositório. Como elas não possuem matrícula, o vínculo com o cadastro oficial permanece pendente até conferência do RH. Consulte [docs/treinamento-desenvolvimento.md](docs/treinamento-desenvolvimento.md).
 
 ## Universidade Corporativa
 

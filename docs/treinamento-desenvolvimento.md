@@ -59,9 +59,25 @@ Na base recebida, 73 linhas foram lidas: 34 possuem as 15 notas reconhecíveis e
 
 ## Áreas do programa
 
-O menu interno preserva as dez visões do programa original: Dashboard Executivo, Ficha de Colaboradores, Gerar PDI Individual, Tipos de Treinamentos, Matriz por Setor, Necessidades (LNT), Gestão de Treinamentos, Custos & ROI, Cronograma Anual e Matriz 9-Box.
+O menu interno organiza a jornada em 13 áreas:
 
-O potencial do 9-Box é estimado somente quando existem notas nas competências declaradas. O ROI exige que o usuário informe um benefício financeiro mensurado. A aplicação não usa notas, potencial ou retorno padrão para preencher ausências.
+1. Dashboard;
+2. Avaliação de Desempenho;
+3. Perfil Comportamental;
+4. Matriz de Competências;
+5. Análise de Lacunas;
+6. Necessidades de Treinamento;
+7. PDI;
+8. Catálogo de Treinamentos;
+9. Custos e Orçamento;
+10. Cronograma Anual;
+11. Custos por Setor;
+12. Histórico de Treinamentos;
+13. Indicadores.
+
+A Matriz 9-Box original permanece disponível como visão complementar. Nenhum dado ou fluxo anterior foi removido.
+
+O Perfil Comportamental reorganiza somente as notas comportamentais já presentes na avaliação; não constitui teste psicológico, diagnóstico ou decisão automatizada. O potencial do 9-Box é estimado somente quando existem notas nas competências declaradas. O ROI exige que o usuário informe um benefício financeiro mensurado. Custos por Setor usa o texto informado em público-alvo/setor, separa valores sem alocação e não inventa rateios. A aplicação não usa notas, potencial ou retorno padrão para preencher ausências.
 
 O bucket `td-documentos` é privado e aceita certificados e evidências em PDF, PNG, JPEG ou XLSX, com limite de 10 MB.
 
