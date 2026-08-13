@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle, BriefcaseBusiness, CheckCircle2, Clock3, GraduationCap,
-  Loader2, RefreshCw, Siren, Target, Users,
+  AlertTriangle, BriefcaseBusiness, CheckCircle2, Clock3, Copy, Download,
+  GraduationCap, Loader2, RefreshCw, Share2, Siren, Target, Users, X,
 } from "lucide-react";
 import { MetricCard, MiniBarList, Pill, ProgramPanel, SectionTitle } from "@/app/dashboard/_components/program-widgets";
 import { groupByLabel, isPendingOverdue, pendingUrgency, type PendingPriority, type PendingStatus } from "@/lib/rh360";
+import { downloadCsv, publicReportUrl } from "@/lib/relatorios";
 import { supabase } from "@/lib/supabase";
 
 type Employee = { id: string; nome: string; status: string; setor_id: string | null; cargo_id: string | null; email: string | null; data_admissao: string | null };
@@ -36,6 +37,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [shareLink, setShareLink] = useState("");
 
   const loadDashboard = useCallback(async () => {
     setLoading(true); setMessage(null);
@@ -78,10 +82,45 @@ export default function DashboardPage() {
   const candidatesByStage = useMemo(() => groupByLabel(applications.filter((item) => item.status === "ativa"), (item) => applicationStages[item.etapa] ?? item.etapa), [applications]);
   const urgentPendencies = useMemo(() => [...activePendencies].sort((a, b) => pendingUrgency(b.prioridade, b.prazo, b.status) - pendingUrgency(a.prioridade, a.prazo, a.status)).slice(0, 6), [activePendencies]);
 
+  function exportDashboard() {
+    const rows: (string | number)[][] = [
+      ["Indicador", "Colaboradores ativos", activeEmployees.length],
+      ["Indicador", "Vagas abertas", openVacancies.length],
+      ["Indicador", "Candidaturas ativas", applications.filter((item) => item.status === "ativa").length],
+      ["Indicador", "Carga horária no plano", plannedTrainingHours],
+      ["Indicador", "PDIs ativos", pdis.filter((item) => item.status === "ativo").length],
+      ["Indicador", "Pendências ativas", activePendencies.length],
+      ["Indicador", "Pendências vencidas", overduePendencies.length],
+      ...employeesBySector.map((item) => ["Colaboradores por setor", item.name, item.value]),
+      ...candidatesByStage.map((item) => ["Candidaturas por etapa", item.name, item.value]),
+      ...trainingByStatus.map((item) => ["Treinamentos por status", item.name, item.value]),
+      ...pdiByStatus.map((item) => ["PDIs por status", item.name, item.value]),
+    ];
+    downloadCsv(`dashboard-executivo-rh360-${new Date().toISOString().slice(0, 10)}.csv`, ["Grupo", "Indicador", "Valor"], rows);
+  }
+
+  async function createShare(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setSharing(true); setMessage(null);
+    const form = new FormData(event.currentTarget);
+    const title = String(form.get("titulo") ?? "Dashboard Executivo RH").trim();
+    const days = Number(form.get("validade") ?? 30);
+    const { data, error } = await supabase.rpc("rh360_criar_compartilhamento_dashboard", { p_titulo: title, p_validade_dias: days });
+    if (error) { setMessage(error.message.includes("rh360_criar_compartilhamento_dashboard") ? "Execute a migração 007 no Supabase para habilitar relatórios compartilháveis." : `Não foi possível criar o link: ${error.message}`); setShareOpen(false); }
+    else {
+      const result = (data as { token: string; expira_em: string }[] | null)?.[0];
+      if (result) setShareLink(publicReportUrl(window.location.origin, result.token));
+    }
+    setSharing(false);
+  }
+
+  async function copyCreatedLink() {
+    await navigator.clipboard.writeText(shareLink);
+  }
+
   return <div className="mx-auto max-w-[1500px] space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <SectionTitle title="Dashboard Executivo RH" description="Indicadores integrados calculados sobre os registros reais da plataforma." />
-      <button type="button" onClick={() => void loadDashboard()} disabled={loading} className="flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-black text-slate-700 disabled:opacity-60"><RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />Atualizar dados</button>
+      <div className="flex flex-wrap gap-2"><button type="button" onClick={exportDashboard} disabled={loading} className="flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-black text-slate-700 disabled:opacity-60"><Download className="mr-2 h-4 w-4" />Exportar CSV</button><button type="button" onClick={() => { setShareLink(""); setShareOpen(true); }} disabled={loading} className="flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-xs font-black text-white disabled:opacity-60"><Share2 className="mr-2 h-4 w-4" />Compartilhar</button><button type="button" onClick={() => void loadDashboard()} disabled={loading} className="flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-black text-slate-700 disabled:opacity-60"><RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />Atualizar</button></div>
     </div>
     {message && <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-800"><AlertTriangle className="mr-2 inline h-4 w-4" />{message}</div>}
     {loading ? <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-16 text-sm text-slate-500"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Consolidando indicadores…</div> : <>
@@ -108,5 +147,6 @@ export default function DashboardPage() {
       </ProgramPanel>
       <p className="text-right text-[10px] font-semibold text-slate-400">{updatedAt ? `Atualizado em ${updatedAt.toLocaleString("pt-BR")}` : ""}</p>
     </>}
+    {shareOpen && <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm md:p-10"><div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl"><div className="flex items-center justify-between border-b border-slate-100 px-6 py-5"><div><h2 className="font-black text-slate-900">Compartilhar dashboard</h2><p className="mt-1 text-xs text-slate-500">Cria um retrato agregado, temporário e revogável.</p></div><button type="button" onClick={() => setShareOpen(false)}><X className="h-5 w-5 text-slate-400" /></button></div>{shareLink ? <div className="space-y-4 p-6"><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs leading-5 text-emerald-800"><strong>Link criado com sucesso.</strong> Nenhum nome, CPF, e-mail, salário ou avaliação individual foi incluído.</div><label className="block text-xs font-bold text-slate-700">Link do relatório<div className="mt-2 flex gap-2"><input readOnly value={shareLink} className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs" /><button type="button" onClick={() => void copyCreatedLink()} className="flex items-center rounded-xl bg-primary px-4 text-xs font-black text-white"><Copy className="mr-2 h-4 w-4" />Copiar</button></div></label><p className="text-[10px] leading-4 text-slate-400">O link pode ser acompanhado ou revogado em Gestão de Pessoas → Central de Dados.</p></div> : <form onSubmit={createShare} className="space-y-4 p-6"><div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-xs leading-5 text-blue-800">O relatório congela os indicadores atuais. Atualizações futuras do banco não alteram o retrato já compartilhado.</div><label className="block text-xs font-bold text-slate-700">Título<input name="titulo" defaultValue="Dashboard Executivo RH" required minLength={3} maxLength={120} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-primary" /></label><label className="block text-xs font-bold text-slate-700">Validade<select name="validade" defaultValue="30" className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="7">7 dias</option><option value="15">15 dias</option><option value="30">30 dias</option><option value="60">60 dias</option><option value="90">90 dias</option></select></label><div className="flex justify-end gap-3 border-t border-slate-100 pt-4"><button type="button" onClick={() => setShareOpen(false)} className="rounded-xl border border-slate-300 px-4 py-2.5 text-xs font-bold">Cancelar</button><button disabled={sharing} className="flex items-center rounded-xl bg-primary px-4 py-2.5 text-xs font-black text-white disabled:opacity-50">{sharing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Criar link seguro</button></div></form>}</div></div>}
   </div>;
 }

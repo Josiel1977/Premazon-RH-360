@@ -33,7 +33,8 @@ export default function SystemHealthPage() {
       return payload as { checks: SystemCheck[]; checkedAt: string };
     });
     const databasePromise = supabase.rpc("rh360_diagnostico_sistema");
-    const [runtime, database] = await Promise.allSettled([runtimePromise, databasePromise]);
+    const dataCenterPromise = supabase.rpc("rh360_diagnostico_central_dados");
+    const [runtime, database, dataCenter] = await Promise.allSettled([runtimePromise, databasePromise, dataCenterPromise]);
     const collected: SystemCheck[] = [];
     if (runtime.status === "fulfilled") {
       collected.push(...runtime.value.checks);
@@ -47,6 +48,16 @@ export default function SystemHealthPage() {
         detalhe: "A função de diagnóstico não foi encontrada ou o perfil atual não possui acesso.",
         acao: detail?.includes("rh360_diagnostico_sistema") ? "Execute a migração 006 no Supabase." : detail ?? "Revise a migração 006 e o perfil do usuário.",
         criticidade: "critica", ordem: 0,
+      });
+    }
+    if (dataCenter.status === "fulfilled" && !dataCenter.value.error) collected.push(...((dataCenter.value.data ?? []) as SystemCheck[]));
+    else {
+      const detail = dataCenter.status === "fulfilled" ? dataCenter.value.error?.message : String(dataCenter.reason);
+      collected.push({
+        chave: "migracao_007_indisponivel", titulo: "Central de Dados indisponível", categoria: "Banco", status: "erro",
+        detalhe: "O histórico unificado e os relatórios compartilháveis ainda não foram preparados.",
+        acao: detail?.includes("rh360_diagnostico_central_dados") ? "Execute a migração 007 no Supabase." : detail ?? "Revise a migração 007.",
+        criticidade: "critica", ordem: 65,
       });
     }
     setChecks(collected.sort((a, b) => a.ordem - b.ordem)); setLoading(false);

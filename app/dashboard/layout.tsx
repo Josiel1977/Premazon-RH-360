@@ -15,6 +15,7 @@ import {
   ClipboardCheck,
   CloudSun,
   Crown,
+  Database,
   GraduationCap,
   HeartHandshake,
   LayoutDashboard,
@@ -104,6 +105,7 @@ const menuGroups: MenuGroup[] = [
     icon: Users,
     links: [
       { name: "Dashboard executivo", href: "/dashboard", icon: LayoutDashboard },
+      { name: "Central de dados", href: "/dashboard/dados", icon: Database, badge: "NOVO" },
       { name: "Colaborador 360", href: "/dashboard/colaboradores", icon: Users, badge: "NOVO" },
       { name: "Pendências e alertas", href: "/dashboard/pendencias", icon: Siren, badge: "NOVO" },
       { name: "Saúde do sistema", href: "/dashboard/saude-sistema", icon: ShieldCheck },

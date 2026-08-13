@@ -1,5 +1,18 @@
 # Histórico de versões
 
+## 0.7.0 — 2026-08-13
+
+- Central de Dados com histórico unificado das importações de Rumo ao Topo, R&S e T&D;
+- banco de dados formalizado como fonte oficial e permanente dos dashboards;
+- orientação de carga histórica única seguida por formulários ou arquivos incrementais;
+- visão de linhas lidas, válidas, rejeitadas, avisos, arquivo, hash, competência e status;
+- exportação do Dashboard Executivo em CSV UTF-8 compatível com Excel;
+- neutralização de fórmulas maliciosas em células exportadas;
+- geração de links executivos temporários com snapshot imutável e apenas dados agregados;
+- acompanhamento de validade e acessos, além de revogação imediata pela Central de Dados;
+- API pública validada por token, chave secreta apenas no servidor, RLS e auditoria sem dados pessoais;
+- diagnóstico da migração 007 e da proteção dos compartilhamentos na Saúde do Sistema.
+
 ## 0.6.0 — 2026-08-13
 
 - dashboard executivo reconstruído sobre dados reais de colaboradores, R&S, treinamentos, PDIs e pendências;

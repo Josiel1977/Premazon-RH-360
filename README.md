@@ -2,7 +2,7 @@
 
 Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo**, **Recrutamento & Seleção** e **Treinamento & Desenvolvimento**.
 
-Versão atual: **0.6.0**.
+Versão atual: **0.7.0**.
 
 ## O que já está disponível
 
@@ -36,6 +36,10 @@ Versão atual: **0.6.0**.
 - conferência humana antes de vincular registros importados ao cadastro oficial do colaborador;
 - Central de Pendências com tarefas manuais e alertas automáticos de SLA, PDI, LNT, eficácia e certificados;
 - Saúde do Sistema com diagnóstico seguro de migrações, buckets privados, RLS, ambiente e acesso, sem exibir segredos.
+- Central de Dados com histórico unificado das planilhas, contagem das bases oficiais e acesso direto aos importadores;
+- fluxo explícito de carga inicial e atualizações incrementais, sem substituir a base já gravada;
+- exportação CSV compatível com Excel e proteção contra fórmulas maliciosas em células;
+- links executivos temporários, revogáveis e auditáveis, contendo somente indicadores agregados.
 
 ## Executar localmente
 
@@ -70,6 +74,7 @@ No SQL Editor do Supabase, execute nesta ordem:
 5. `database/migrations/20260813_004_universidade_corporativa.sql` — cursos online, módulos, videoaulas, matrículas, progresso, certificados e bucket privado.
 6. `database/migrations/20260813_005_programas_estrategicos.sql` — PDI individual e histórico analítico de Recrutamento & Seleção.
 7. `database/migrations/20260813_006_fundacao_colaborador_360.sql` — Saúde do Sistema, Colaborador 360 e Central de Pendências.
+8. `database/migrations/20260813_007_central_dados_relatorios.sql` — histórico unificado, exportação e relatórios executivos compartilháveis.
 
 Depois, em **Authentication > Users**, crie o primeiro usuário. Copie o UUID dele e execute no SQL Editor:
 
@@ -135,6 +140,18 @@ O envio usa o protocolo TUS, com retomada automática e barra de progresso. O bu
 5. Abra **Pendências e alertas** para sincronizar condições automáticas, criar tarefas e acompanhar a resolução.
 
 As regras funcionais, fontes dos alertas e permissões estão em [docs/fundacao-rh360.md](docs/fundacao-rh360.md).
+
+## Central de Dados e Relatórios
+
+1. Execute a migração `20260813_007_central_dados_relatorios.sql` depois da migração 006.
+2. Abra **Gestão de Pessoas > Central de dados** para consultar o histórico das importações.
+3. Na primeira carga de cada fonte, importe a base histórica completa.
+4. Nas cargas seguintes, use os formulários da plataforma ou envie planilhas contendo somente as novas linhas.
+5. Use **Exportar CSV** no Dashboard para abrir os indicadores no Excel.
+6. Use **Compartilhar** para criar um retrato executivo com validade entre 1 e 90 dias.
+7. Acompanhe os acessos e revogue o link pela Central de Dados quando necessário.
+
+Os relatórios públicos não consultam diretamente os registros operacionais e não contêm nomes, CPF, e-mails, salários ou avaliações individuais. Consulte [docs/central-dados-relatorios.md](docs/central-dados-relatorios.md).
 
 ## Qualidade
 
