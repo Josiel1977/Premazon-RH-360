@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 import { 
   LayoutDashboard, 
   Users, 
@@ -13,7 +15,8 @@ import {
   LogOut,
   Bell,
   Search,
-  ShieldCheck
+  ShieldCheck,
+  Crown,
 } from "lucide-react";
 
 const menuItems = [
@@ -25,6 +28,7 @@ const menuItems = [
   { name: "Certificados", href: "/dashboard/certificados", icon: Award },
   { name: "PDIs", href: "/dashboard/pdis", icon: Target },
   { name: "Cargos", href: "/dashboard/cargos", icon: Briefcase },
+  { name: "Rumo ao Topo", href: "/dashboard/rumo-ao-topo", icon: Crown },
   { name: "Acessos & Permissões", href: "/dashboard/acessos", icon: ShieldCheck },
 ];
 
@@ -34,6 +38,20 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [userEmail, setUserEmail] = useState("Usuário autenticado");
+
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => {
+      if (data.user?.email) setUserEmail(data.user.email);
+    });
+  }, []);
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.replace("/");
+    router.refresh();
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -50,7 +68,7 @@ export default function DashboardLayout({
           <ul className="space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <li key={item.name}>
                   <Link
@@ -71,10 +89,14 @@ export default function DashboardLayout({
         </nav>
         
         <div className="p-4 border-t border-primary-dark/30">
-          <div className="flex items-center text-sm text-blue-200 hover:text-white cursor-pointer px-2 py-2 rounded-md hover:bg-white/5 transition-colors">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex w-full items-center rounded-md px-2 py-2 text-sm text-blue-200 transition-colors hover:bg-white/5 hover:text-white"
+          >
             <LogOut className="w-5 h-5 mr-3" />
             Sair do sistema
-          </div>
+          </button>
         </div>
       </aside>
 
@@ -92,17 +114,17 @@ export default function DashboardLayout({
           </div>
           
           <div className="flex items-center space-x-6">
-            <button className="text-gray-400 hover:text-gray-600 relative">
+            <button aria-label="Notificações" className="text-gray-400 hover:text-gray-600 relative">
               <Bell className="w-5 h-5" />
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
             <div className="flex items-center border-l pl-6 border-gray-200">
               <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold mr-3">
-                GR
+                {userEmail.slice(0, 2).toUpperCase()}
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-gray-700 leading-tight">Maria Silva</span>
-                <span className="text-xs font-medium text-secondary leading-tight">Gerente de RH</span>
+                <span className="max-w-48 truncate text-sm font-bold leading-tight text-gray-700">{userEmail}</span>
+                <span className="text-xs font-medium text-secondary leading-tight">Acesso protegido</span>
               </div>
             </div>
           </div>

@@ -2,20 +2,38 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LayoutDashboard, Lock, User, ArrowRight } from "lucide-react";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+
+    if (!isSupabaseConfigured) {
+      setError("Configure as variáveis do Supabase antes de acessar o sistema.");
+      return;
+    }
+
     setIsLoading(true);
-    // Simular autenticação
-    setTimeout(() => {
-      router.push("/dashboard");
-    }, 1000);
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (authError) {
+      setError("E-mail ou senha inválidos.");
+      setIsLoading(false);
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
   };
 
   return (
@@ -32,18 +50,18 @@ export default function LoginPage() {
         <div className="p-8">
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Usuário / Matrícula</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">E-mail corporativo</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  type="text"
+                  type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-sm bg-gray-50 focus:bg-white"
-                  placeholder="Digite sua matrícula"
+                  placeholder="nome@premazon.com.br"
                 />
               </div>
             </div>
@@ -63,12 +81,14 @@ export default function LoginPage() {
                   placeholder="••••••••"
                 />
               </div>
-              <div className="flex justify-end mt-2">
-                <a href="#" className="text-xs font-medium text-primary hover:text-primary-dark transition-colors">
-                  Esqueci minha senha
-                </a>
-              </div>
+              <p className="mt-2 text-right text-xs text-gray-500">Para redefinir a senha, solicite ao RH.</p>
             </div>
+
+            {error && (
+              <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
 
             <button
               type="submit"

@@ -3,14 +3,14 @@ import { Save, X, Paperclip, Plus, Edit2, Trash2, CheckCircle2, XCircle } from "
 import { useState } from "react";
 
 const initialTreinamentos = [
-  { id: 1, nome: "NR-35 Trabalho em Altura", categoria: "nr35", ch: 8, obrigatorio: true, instrutor: "Carlos Mendes", status: "ativo" },
-  { id: 2, nome: "NR-10 Básico", categoria: "nr10", ch: 40, obrigatorio: true, instrutor: "Carlos Mendes", status: "ativo" },
-  { id: 3, nome: "Integração de Novos Colaboradores", categoria: "integracao", ch: 4, obrigatorio: true, instrutor: "Maria Silva", status: "ativo" },
+  { id: 1, nome: "NR-35 Trabalho em Altura", categoria: "nr35", ch: 8, obrigatorio: true, instrutor: "Instrutor Exemplo A", status: "ativo" },
+  { id: 2, nome: "NR-10 Básico", categoria: "nr10", ch: 40, obrigatorio: true, instrutor: "Instrutor Exemplo A", status: "ativo" },
+  { id: 3, nome: "Integração de Novos Colaboradores", categoria: "integracao", ch: 4, obrigatorio: true, instrutor: "Instrutor Exemplo B", status: "ativo" },
 ];
 
 export default function TreinamentosPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [treinamentos, setTreinamentos] = useState(initialTreinamentos);
+  const [treinamentos] = useState(initialTreinamentos);
 
   return (
     <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
@@ -101,8 +101,8 @@ export default function TreinamentosPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Instrutor Responsável</label>
                 <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-white">
                   <option value="">Selecione...</option>
-                  <option value="carlos">Carlos Mendes (Engenheiro de Segurança)</option>
-                  <option value="maria">Maria Silva (Gerente RH)</option>
+                  <option value="demo-instrutor">Instrutor Exemplo A (Segurança)</option>
+                  <option value="demo-rh">Instrutor Exemplo B (RH)</option>
                   <option value="ext">Profissional Externo / Terceirizado</option>
                 </select>
               </div>

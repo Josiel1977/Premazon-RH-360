@@ -16,8 +16,8 @@ export default function PdiPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Colaborador Vinculado</label>
               <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-white">
                 <option value="">Selecione o colaborador...</option>
-                <option value="1">João da Silva</option>
-                <option value="2">Ana Souza</option>
+                <option value="1">Colaborador Exemplo A</option>
+                <option value="2">Colaborador Exemplo B</option>
               </select>
             </div>
 

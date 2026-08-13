@@ -31,7 +31,7 @@ export default function CertificadosPage() {
                 <p className="text-sm text-gray-500 mt-1">Concluído em: 15/07/2026 • 40 Horas • 12 Participantes Aprovados</p>
                 <div className="flex items-center space-x-4 mt-3">
                   <div className="text-sm text-gray-600">
-                    <span className="font-medium text-gray-800">Instrutor Responsável:</span> Carlos Mendes (Eng. Eletricista)
+                    <span className="font-medium text-gray-800">Instrutor Responsável:</span> Instrutor Exemplo A
                   </div>
                 </div>
               </div>
@@ -70,7 +70,7 @@ export default function CertificadosPage() {
                 <p className="text-sm text-gray-500 mt-1">Concluído em: 12/07/2026 • 8 Horas • 8 Participantes Aprovados</p>
                 <div className="flex items-center space-x-4 mt-3">
                   <div className="text-sm text-gray-600">
-                    <span className="font-medium text-gray-800">Instrutor Responsável:</span> Marcos Oliveira (Téc. Segurança)
+                    <span className="font-medium text-gray-800">Instrutor Responsável:</span> Instrutor Exemplo B
                   </div>
                 </div>
               </div>

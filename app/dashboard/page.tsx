@@ -1,5 +1,5 @@
 "use client";
-import { Users, AlertTriangle, BookOpen, Clock, FileText, Target, TrendingUp } from "lucide-react";
+import { AlertTriangle, Clock, FileText, Target, TrendingUp } from "lucide-react";
 import { 
   BarChart, 
   Bar, 
@@ -184,7 +184,7 @@ export default function DashboardPage() {
                 <tr className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-800 flex items-center">
                     <div className="w-6 h-6 rounded-full bg-blue-100 text-primary flex items-center justify-center text-xs mr-2">1</div>
-                    Carlos Silva
+                    Colaborador Exemplo A
                   </td>
                   <td className="px-4 py-3 text-gray-500">Matriz</td>
                   <td className="px-4 py-3 font-bold text-primary text-right">45h</td>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
                 <tr className="border-b border-gray-50 hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-800 flex items-center">
                     <div className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs mr-2">2</div>
-                    Ana Souza
+                    Colaborador Exemplo B
                   </td>
                   <td className="px-4 py-3 text-gray-500">Filial Sul</td>
                   <td className="px-4 py-3 font-bold text-primary text-right">38h</td>
@@ -200,7 +200,7 @@ export default function DashboardPage() {
                 <tr className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-800 flex items-center">
                     <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xs mr-2">3</div>
-                    Marcos Mendes
+                    Colaborador Exemplo C
                   </td>
                   <td className="px-4 py-3 text-gray-500">Logística</td>
                   <td className="px-4 py-3 font-bold text-primary text-right">32h</td>

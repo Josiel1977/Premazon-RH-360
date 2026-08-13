@@ -14,7 +14,7 @@ export default function AcessosPage() {
         <div className="mb-8 p-4 bg-blue-50 border border-blue-100 rounded-lg flex items-start">
           <ShieldAlert className="w-5 h-5 text-primary mt-0.5 mr-3 flex-shrink-0" />
           <div className="text-sm text-blue-800">
-            <span className="font-bold">Aviso de Segurança:</span> A emissão e validação de certificados é restrita exclusivamente ao nível <strong>"Gerente de RH"</strong>. Instrutores podem apenas registrar presenças e lançar notas de avaliações.
+            <span className="font-bold">Aviso de Segurança:</span> A emissão e validação de certificados é restrita exclusivamente ao nível <strong>Gerente de RH</strong>. Instrutores podem apenas registrar presenças e lançar notas de avaliações.
           </div>
         </div>
 
@@ -25,9 +25,9 @@ export default function AcessosPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Colaborador / Usuário</label>
               <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all bg-white">
                 <option value="">Selecione o usuário...</option>
-                <option value="1">Maria Silva - Matrícula: 001001</option>
-                <option value="2">Carlos Mendes (Instrutor) - Matrícula: 002304</option>
-                <option value="3">João da Silva - Matrícula: 001234</option>
+                <option value="1">Colaborador Exemplo A - Matrícula: DEMO-001</option>
+                <option value="2">Instrutor Exemplo B - Matrícula: DEMO-002</option>
+                <option value="3">Colaborador Exemplo C - Matrícula: DEMO-003</option>
               </select>
             </div>
 

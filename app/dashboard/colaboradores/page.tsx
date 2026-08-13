@@ -1,5 +1,4 @@
 "use client";
-import { useState } from "react";
 import { Save, X, Upload } from "lucide-react";
 
 export default function ColaboradoresPage() {
@@ -15,7 +14,7 @@ export default function ColaboradoresPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="col-span-1 md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
-              <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" placeholder="Ex: João da Silva" />
+              <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" placeholder="Ex: Nome do colaborador" />
             </div>
 
             <div>
@@ -25,7 +24,7 @@ export default function ColaboradoresPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Matrícula</label>
-              <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" placeholder="001234" />
+              <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" placeholder="Ex: MAT-0001" />
             </div>
 
             <div>
@@ -55,7 +54,7 @@ export default function ColaboradoresPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Gestor Responsável</label>
-              <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" placeholder="Ex: Carlos Mendes" />
+              <input type="text" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" placeholder="Ex: Nome do gestor" />
             </div>
 
             <div>
@@ -65,7 +64,7 @@ export default function ColaboradoresPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-              <input type="email" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" placeholder="joao@empresa.com" />
+              <input type="email" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" placeholder="colaborador@example.com" />
             </div>
 
             <div>

@@ -5,3 +5,11 @@ coverage/
 *.log
 .env*
 !.env.example
+*.bak
+*.tsbuildinfo
+out/
+dist/
+build/
+.vscode/
+.idea/
+Thumbs.db
