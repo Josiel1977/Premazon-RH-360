@@ -12,7 +12,8 @@
 - protege convites e resultados com RLS e restringe a administração aos perfis administrador e RH;
 - adiciona importação controlada do cadastro mestre a partir de XLSX, com prévia, deduplicação, hash e auditoria;
 - cria setores, equipes e funções ausentes sem sobrescrever cadastros existentes;
-- adiciona as migrações e os diagnósticos 011 e 012;
+- corrige a compatibilidade entre `setores.created_at` do schema inicial e `setores.criado_em` usado pela importação;
+- adiciona as migrações 011, 012 e 013 e os diagnósticos de perfil e importação;
 - explicita que o questionário não é teste psicológico, diagnóstico, prova de aptidão ou decisão automática.
 
 ## 0.11.0 — 2026-08-13

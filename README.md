@@ -97,6 +97,7 @@ No SQL Editor do Supabase, execute nesta ordem:
 11. `database/migrations/20260813_010_identificacao_candidatos.sql` — CPF protegido, filiação materna e nascimento no cadastro de candidatos.
 12. `database/migrations/20260813_011_perfil_comportamental_colaborador.sql` — convites individuais, respostas e resultados versionados do questionário de autopercepção.
 13. `database/migrations/20260813_012_importacao_cadastro_mestre.sql` — importação controlada, deduplicação e auditoria do cadastro mestre de colaboradores.
+14. `database/migrations/20260813_013_compatibilidade_importacao_colaboradores.sql` — compatibilidade segura da tabela de setores para a importação do cadastro mestre.
 
 Depois, em **Authentication > Users**, crie o primeiro usuário. Copie o UUID dele e execute no SQL Editor:
 
