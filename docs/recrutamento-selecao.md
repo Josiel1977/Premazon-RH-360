@@ -19,6 +19,8 @@ O formulário público mostra apenas os dados necessários da oportunidade. O to
 - `rs_vagas`: abertura, contratação, solicitante, SLA, custos, descrição, requisitos e situação do link;
 - `rs_candidaturas`: contato, experiência, consentimento, etapa e metadados do currículo;
 - `rs_movimentacoes`: histórico das alterações de etapa;
+- `rs_importacoes_historico`: arquivo, hash, validação, rejeições e avisos da base analítica;
+- `rs_historico_processos`: admissões, desligamentos, substituições, SLA e custos reais importados;
 - `auditoria_eventos`: registra alterações sem copiar os dados pessoais do candidato;
 - bucket `curriculos-candidatos`: privado, com limite de 5 MB e formatos PDF, DOC e DOCX.
 
@@ -45,4 +47,12 @@ Obtenha a chave em **Supabase > Project Settings > API Keys > Secret keys**. Cad
 
 ## Referência da planilha
 
-A planilha histórica serviu para modelar cargo, departamento, solicitante, abertura, tipo de contratação, substituição, SLA e custo. Os registros originais não foram copiados porque contêm nomes de pessoas e inconsistências de cálculo que precisam ser saneadas antes de uma importação controlada.
+A planilha histórica serviu para modelar cargo, departamento, solicitante, abertura, tipo de contratação, substituição, SLA e custo. Ela pode ser importada de forma controlada pela área **Importar Planilha CSV**, com prévia e avisos antes da gravação. Os dados continuam fora do repositório.
+
+O menu interno também oferece Dashboard Executivo, base completa, gráficos da Diretoria, análises por departamento e gestor, tipos de contratação e desligamento, substituições, custos, uniformes/EPIs e relatórios. Custos de EPI ou uniforme permanecem vazios quando o CSV não traz essas colunas; nenhum valor é estimado pelo cargo.
+
+Para ativar o histórico analítico, execute também:
+
+```text
+database/migrations/20260813_005_programas_estrategicos.sql
+```

@@ -2,7 +2,7 @@
 
 Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo**, **Recrutamento & Seleção** e **Treinamento & Desenvolvimento**.
 
-Versão atual: **0.4.0**.
+Versão atual: **0.5.0**.
 
 ## O que já está disponível
 
@@ -28,6 +28,9 @@ Versão atual: **0.4.0**.
 - Universidade Corporativa com cursos, módulos e videoaulas privadas;
 - upload retomável de vídeos, publicação, matrículas e acompanhamento de progresso;
 - reprodução por URL temporária e acesso protegido por perfil e matrícula.
+- áreas internas completas dos três programas estratégicos, preservando a identidade de cada solução;
+- PDI individual persistente, matriz de competências, cronograma, custos, ROI verificável e 9-Box;
+- histórico analítico de R&S com importação CSV, relatórios para diretoria e custos sem valores artificiais.
 
 ## Executar localmente
 
@@ -60,6 +63,7 @@ No SQL Editor do Supabase, execute nesta ordem:
 3. `database/migrations/20260812_002_recrutamento_selecao.sql` — vagas, candidaturas, RLS e bucket privado de currículos.
 4. `database/migrations/20260813_003_treinamento_desenvolvimento.sql` — LNT, desempenho, catálogo, plano anual, participações e eficácia.
 5. `database/migrations/20260813_004_universidade_corporativa.sql` — cursos online, módulos, videoaulas, matrículas, progresso, certificados e bucket privado.
+6. `database/migrations/20260813_005_programas_estrategicos.sql` — PDI individual e histórico analítico de Recrutamento & Seleção.
 
 Depois, em **Authentication > Users**, crie o primeiro usuário. Copie o UUID dele e execute no SQL Editor:
 
@@ -72,7 +76,7 @@ Esse passo concede acesso administrativo ao primeiro usuário. Os próximos perf
 
 ## Importar o Rumo ao Topo
 
-1. Entre no sistema e abra **Rumo ao Topo** no menu lateral.
+1. Entre no sistema e abra **Rumo ao Topo** no menu lateral; use a navegação interna para Dashboard, Base Geral, Bônus, Faltas, Atrasos, Atestados, Setores e relatório da Diretoria.
 2. Baixe a planilha-modelo.
 3. Preencha uma linha por colaborador, sem alterar os títulos das colunas.
 4. Selecione o mês de referência e o valor da premiação.
@@ -91,13 +95,14 @@ As regras e o desenho técnico do módulo estão em [docs/rumo-ao-topo.md](docs/
 4. O candidato abre o formulário sem login, aceita o aviso de privacidade e anexa um currículo de até 5 MB.
 5. O RH acompanha a candidatura, altera a etapa e abre o currículo por um link temporário.
 6. Fechar a vaga desativa o formulário público imediatamente.
+7. Em **Importar Planilha CSV**, grave a base histórica para liberar análises por departamento, gestor, contratação, desligamento, substituição e custos.
 
 Na Vercel, cadastre as três variáveis acima em **Project Settings > Environment Variables** e faça um novo deploy. A planilha histórica de vagas enviada como referência contém nomes reais; por isso, seus registros não fazem parte do repositório. A arquitetura do módulo está em [docs/recrutamento-selecao.md](docs/recrutamento-selecao.md).
 
 ## Treinamento & Desenvolvimento
 
-1. Execute a migração `20260813_003_treinamento_desenvolvimento.sql` no Supabase.
-2. Abra **Treinamento & Desenvolvimento > Importar bases**.
+1. Execute as migrações `20260813_003_treinamento_desenvolvimento.sql` e `20260813_005_programas_estrategicos.sql` no Supabase.
+2. Abra **Treinamento & Desenvolvimento** e clique em **Importar bases** no cabeçalho do programa.
 3. Importe primeiro a LNT e confira a prévia antes de gravar.
 4. Importe a avaliação de desempenho; respostas sem nota serão rejeitadas com aviso em vez de receber média artificial.
 5. Priorize as necessidades, mantenha o catálogo e distribua as ações no plano anual.

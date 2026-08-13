@@ -2,53 +2,73 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  BriefcaseBusiness, Check, ChevronDown, CirclePause, ClipboardCopy,
-  ExternalLink, FileText, Loader2, Mail, MessageCircle, Plus, RefreshCw,
-  Search, Send, Timer, UserRoundCheck, Users, X,
+  BarChart3, BriefcaseBusiness, Building2, Check, ChevronDown, CirclePause,
+  ClipboardCopy, Database, DollarSign, Download, ExternalLink, FileBarChart,
+  FileText, HardHat, Loader2, Mail, MessageCircle, PackageCheck, Plus, Printer,
+  RefreshCw, Search, Send, Sheet, Tags, Timer, Upload, UserRoundCheck, Users,
+  UserX, X,
 } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ModuleWorkspace, WorkspaceEmpty, type WorkspaceItem } from "@/app/dashboard/_components/module-workspace";
+import { MetricCard, MiniBarList, Pill, ProgramPanel, SectionTitle } from "@/app/dashboard/_components/program-widgets";
 import { supabase } from "@/lib/supabase";
 import { linkPublicoCandidatura, textoCompartilhamento } from "@/lib/recrutamento";
+import { decodeRecruitmentCsv, groupCount, groupSum, parseRecruitmentHistory, type RecruitmentHistoryRecord, type RecruitmentParseResult } from "@/lib/recrutamento-analytics";
 
+type View = "dashboard" | "base" | "graficos" | "departamento" | "gestor" | "contratacao" | "demissao" | "motivos" | "substituicoes" | "custos" | "epis" | "importar" | "relatorios";
 type Vacancy = {
   id: string; codigo: string; cargo: string; departamento: string; solicitante: string;
   tipo_contratacao: string; quantidade: number; data_abertura: string; data_fechamento: string | null;
-  sla_dias: number; localidade: string | null; modalidade: string; status: string;
+  sla_dias: number; custo_colaborador: number | null; localidade: string | null; modalidade: string; status: string;
   public_token: string; link_ativo: boolean; link_expira_em: string | null;
 };
-
 type Application = {
   id: string; vaga_id: string; protocolo: string; nome: string; email: string;
   telefone: string; cidade: string; estado: string; etapa: string; status: string;
   curriculo_path: string; curriculo_nome: string; criado_em: string;
 };
+type HistoryRecord = RecruitmentHistoryRecord & { id: string; importacao_id: string };
+type ImportPreview = { file: File; result: RecruitmentParseResult };
 
-const stageLabels: Record<string, string> = {
-  triagem: "Triagem", entrevista_rh: "Entrevista RH", teste_tecnico: "Teste técnico",
-  entrevista_gestor: "Entrevista gestor", proposta: "Proposta", admissao: "Admissão", encerrado: "Encerrado",
-};
+const stageLabels: Record<string, string> = { triagem: "Triagem", entrevista_rh: "Entrevista RH", teste_tecnico: "Teste técnico", entrevista_gestor: "Entrevista gestor", proposta: "Proposta", admissao: "Admissão", encerrado: "Encerrado" };
+const typeLabels: Record<string, string> = { aumento_quadro: "Aumento de quadro", substituicao: "Substituição", sem_substituicao: "Sem substituição", cota: "Cota", temporario: "Temporário" };
+const fieldClass = "mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-blue-100";
+const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const colors = ["#1d4ed8", "#0f766e", "#7c3aed", "#d97706", "#dc2626", "#0891b2", "#db2777"];
+const views: WorkspaceItem<View>[] = [
+  { key: "dashboard", label: "1. Dashboard Executivo", icon: BarChart3, tone: "info" },
+  { key: "base", label: "2. Base de Dados Completa", icon: Database, tone: "success" },
+  { key: "graficos", label: "3. Gráficos (Diretoria)", icon: FileBarChart, tone: "accent" },
+  { key: "departamento", label: "4. Contratações por Depto", icon: Building2, tone: "info" },
+  { key: "gestor", label: "5. Análise por Gestor", icon: UserRoundCheck, tone: "success" },
+  { key: "contratacao", label: "6. Tipos de Contratação", icon: Tags, tone: "warning" },
+  { key: "demissao", label: "7. Tipos de Demissão", icon: UserX, tone: "danger" },
+  { key: "motivos", label: "7B. Motivos do Desligamento", icon: FileText, tone: "danger" },
+  { key: "substituicoes", label: "8. Substituições Realizadas", icon: RefreshCw, tone: "accent" },
+  { key: "custos", label: "9. Custos por Setor/Função", icon: DollarSign, tone: "warning" },
+  { key: "epis", label: "10. Uniformes & EPIs", icon: HardHat, tone: "warning" },
+  { key: "importar", label: "11. Importar Planilha CSV", icon: Upload, tone: "info" },
+  { key: "relatorios", label: "12. Relatórios & Impressão", icon: Printer, tone: "success" },
+];
 
-const typeLabels: Record<string, string> = {
-  aumento_quadro: "Aumento de quadro", substituicao: "Substituição",
-  sem_substituicao: "Sem substituição", cota: "Cota", temporario: "Temporário",
-};
-
-const fieldClass = "mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-blue-100";
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR").format(new Date(`${value}T12:00:00`));
-}
-
-function vacancyDays(opening: string, referenceTime: number) {
-  return Math.max(0, Math.floor((referenceTime - new Date(`${opening}T12:00:00`).getTime()) / 86_400_000));
-}
+function formatDate(value: string | null) { if (!value) return "—"; return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${value.slice(0, 10)}T12:00:00Z`)); }
+function vacancyDays(opening: string, referenceTime: number) { return Math.max(0, Math.floor((referenceTime - new Date(`${opening}T12:00:00`).getTime()) / 86_400_000)); }
+function normalize(value: string) { return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(); }
+async function fileHash(file: File) { const hash = await crypto.subtle.digest("SHA-256", await file.arrayBuffer()); return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join(""); }
 
 export default function RecrutamentoPage() {
+  const [view, setView] = useState<View>("dashboard");
   const [vacancies, setVacancies] = useState<Vacancy[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [history, setHistory] = useState<HistoryRecord[]>([]);
+  const [historyReady, setHistoryReady] = useState(true);
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reading, setReading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
+  const [department, setDepartment] = useState("todos");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [copiedToken, setCopiedToken] = useState("");
   const [hiringType, setHiringType] = useState("aumento_quadro");
@@ -56,179 +76,163 @@ export default function RecrutamentoPage() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [vacanciesResult, applicationsResult] = await Promise.all([
-      supabase.from("rs_vagas")
-        .select("id,codigo,cargo,departamento,solicitante,tipo_contratacao,quantidade,data_abertura,data_fechamento,sla_dias,localidade,modalidade,status,public_token,link_ativo,link_expira_em")
-        .order("data_abertura", { ascending: false }),
-      supabase.from("rs_candidaturas")
-        .select("id,vaga_id,protocolo,nome,email,telefone,cidade,estado,etapa,status,curriculo_path,curriculo_nome,criado_em")
-        .order("criado_em", { ascending: false }),
+    const [vacanciesResult, applicationsResult, historyResult] = await Promise.all([
+      supabase.from("rs_vagas").select("id,codigo,cargo,departamento,solicitante,tipo_contratacao,quantidade,data_abertura,data_fechamento,sla_dias,custo_colaborador,localidade,modalidade,status,public_token,link_ativo,link_expira_em").order("data_abertura", { ascending: false }),
+      supabase.from("rs_candidaturas").select("id,vaga_id,protocolo,nome,email,telefone,cidade,estado,etapa,status,curriculo_path,curriculo_nome,criado_em").order("criado_em", { ascending: false }),
+      supabase.from("rs_historico_processos").select("id,importacao_id,linha_original,cargo,departamento,gestor,data_abertura,tipo_contratacao,colaborador_substituido,colaborador_contratado,data_admissao,data_demissao,tipo_desligamento,motivo_desligamento,data_fechamento,sla_dias,custo_colaborador,custo_epi,custo_uniforme,tamanho_calca,tamanho_camisa,tamanho_bota").order("data_abertura", { ascending: false }).limit(5000),
     ]);
     if (vacanciesResult.error || applicationsResult.error) {
       const detail = vacanciesResult.error?.message ?? applicationsResult.error?.message ?? "Erro desconhecido";
-      setMessage({ type: "error", text: detail.includes("rs_vagas")
-        ? "O banco do módulo ainda não foi preparado. Execute a migração 20260812_002 no Supabase."
-        : `Não foi possível carregar o módulo: ${detail}` });
+      setMessage({ type: "error", text: detail.includes("rs_vagas") ? "Prepare o módulo executando a migração 002 no Supabase." : `Não foi possível carregar R&S: ${detail}` });
     } else {
-      setVacancies((vacanciesResult.data ?? []) as Vacancy[]);
+      setVacancies((vacanciesResult.data ?? []).map((item) => ({ ...item, custo_colaborador: item.custo_colaborador == null ? null : Number(item.custo_colaborador) })) as Vacancy[]);
       setApplications((applicationsResult.data ?? []) as Application[]);
+    }
+    if (historyResult.error) setHistoryReady(false);
+    else {
+      setHistoryReady(true);
+      setHistory((historyResult.data ?? []).map((item) => ({ ...item, custo_colaborador: item.custo_colaborador == null ? null : Number(item.custo_colaborador), custo_epi: item.custo_epi == null ? null : Number(item.custo_epi), custo_uniforme: item.custo_uniforme == null ? null : Number(item.custo_uniforme) })) as HistoryRecord[]);
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    const timeout = window.setTimeout(() => void loadData(), 0);
-    return () => window.clearTimeout(timeout);
-  }, [loadData]);
+  useEffect(() => { const timeout = window.setTimeout(() => void loadData(), 0); return () => window.clearTimeout(timeout); }, [loadData]);
 
-  const candidatesByVacancy = useMemo(() => {
-    const result = new Map<string, number>();
-    applications.forEach((item) => result.set(item.vaga_id, (result.get(item.vaga_id) ?? 0) + 1));
-    return result;
-  }, [applications]);
-
-  const filteredVacancies = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase("pt-BR");
-    if (!term) return vacancies;
-    return vacancies.filter((item) => [item.codigo, item.cargo, item.departamento, item.solicitante]
-      .some((value) => value.toLocaleLowerCase("pt-BR").includes(term)));
-  }, [search, vacancies]);
-
+  const departments = useMemo(() => [...new Set([...vacancies.map((item) => item.departamento), ...history.map((item) => item.departamento)])].sort(), [history, vacancies]);
+  const filteredHistory = useMemo(() => history.filter((item) => {
+    const term = normalize(search.trim());
+    return (department === "todos" || item.departamento === department) && (!term || [item.cargo, item.departamento, item.gestor, item.colaborador_contratado ?? "", item.colaborador_substituido ?? ""].some((value) => normalize(value).includes(term)));
+  }), [department, history, search]);
+  const filteredVacancies = useMemo(() => vacancies.filter((item) => {
+    const term = normalize(search.trim());
+    return (department === "todos" || item.departamento === department) && (!term || [item.codigo, item.cargo, item.departamento, item.solicitante].some((value) => normalize(value).includes(term)));
+  }), [department, search, vacancies]);
+  const candidatesByVacancy = useMemo(() => { const result = new Map<string, number>(); applications.forEach((item) => result.set(item.vaga_id, (result.get(item.vaga_id) ?? 0) + 1)); return result; }, [applications]);
   const openVacancies = vacancies.filter((item) => item.status === "aberta");
-  const averageSla = openVacancies.length
-    ? Math.round(openVacancies.reduce((sum, item) => sum + vacancyDays(item.data_abertura, referenceTime), 0) / openVacancies.length)
-    : 0;
+  const averageSla = openVacancies.length ? Math.round(openVacancies.reduce((sum, item) => sum + vacancyDays(item.data_abertura, referenceTime), 0) / openVacancies.length) : 0;
+  const admissions = history.filter((item) => item.data_admissao);
+  const dismissals = history.filter((item) => item.data_demissao || item.tipo_desligamento);
+  const averageHistoricalSla = history.filter((item) => item.sla_dias != null).length ? history.filter((item) => item.sla_dias != null).reduce((sum, item) => sum + (item.sla_dias ?? 0), 0) / history.filter((item) => item.sla_dias != null).length : null;
+  const departmentData = useMemo(() => groupCount(admissions, (item) => item.departamento), [admissions]);
+  const managerData = useMemo(() => groupCount(history, (item) => item.gestor), [history]);
+  const hiringData = useMemo(() => groupCount(history, (item) => item.tipo_contratacao), [history]);
+  const dismissalData = useMemo(() => groupCount(dismissals, (item) => item.tipo_desligamento), [dismissals]);
+  const costByDepartment = useMemo(() => groupSum(history, (item) => item.departamento, (item) => item.custo_colaborador), [history]);
+  const costByRole = useMemo(() => groupSum(history, (item) => item.cargo, (item) => item.custo_colaborador), [history]);
 
   async function createVacancy(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSaving(true);
-    setMessage(null);
-    const form = new FormData(event.currentTarget);
-    const expiration = String(form.get("link_expira_em") ?? "");
-    const { data, error } = await supabase.from("rs_vagas").insert({
-      cargo: String(form.get("cargo") ?? "").trim(),
-      departamento: String(form.get("departamento") ?? "").trim(),
-      solicitante: String(form.get("solicitante") ?? "").trim(),
-      tipo_contratacao: String(form.get("tipo_contratacao") ?? "aumento_quadro"),
-      colaborador_substituido: String(form.get("colaborador_substituido") ?? "").trim() || null,
-      quantidade: Number(form.get("quantidade") ?? 1),
-      data_abertura: String(form.get("data_abertura") ?? ""),
-      sla_dias: Number(form.get("sla_dias") ?? 30),
-      custo_colaborador: form.get("custo_colaborador") ? Number(form.get("custo_colaborador")) : null,
-      localidade: String(form.get("localidade") ?? "").trim() || null,
-      modalidade: String(form.get("modalidade") ?? "presencial"),
-      descricao: String(form.get("descricao") ?? "").trim(),
-      requisitos: String(form.get("requisitos") ?? "").trim(),
-      status: "aberta", link_ativo: true,
-      link_expira_em: expiration ? new Date(`${expiration}T23:59:59`).toISOString() : null,
-    }).select("public_token,cargo").single();
-    if (error) setMessage({ type: "error", text: `Não foi possível criar a vaga: ${error.message}` });
-    else {
-      setShowForm(false);
-      setHiringType("aumento_quadro");
-      setMessage({ type: "success", text: `Vaga ${data.cargo} criada. O link público já pode ser compartilhado.` });
-      await loadData();
-    }
-    setSaving(false);
+    event.preventDefault(); setSaving(true); setMessage(null); const form = new FormData(event.currentTarget); const expiration = String(form.get("link_expira_em") ?? "");
+    const { data, error } = await supabase.from("rs_vagas").insert({ cargo: String(form.get("cargo") ?? "").trim(), departamento: String(form.get("departamento") ?? "").trim(), solicitante: String(form.get("solicitante") ?? "").trim(), tipo_contratacao: String(form.get("tipo_contratacao") ?? "aumento_quadro"), colaborador_substituido: String(form.get("colaborador_substituido") ?? "").trim() || null, quantidade: Number(form.get("quantidade") ?? 1), data_abertura: String(form.get("data_abertura") ?? ""), sla_dias: Number(form.get("sla_dias") ?? 30), custo_colaborador: form.get("custo_colaborador") ? Number(form.get("custo_colaborador")) : null, localidade: String(form.get("localidade") ?? "").trim() || null, modalidade: String(form.get("modalidade") ?? "presencial"), descricao: String(form.get("descricao") ?? "").trim(), requisitos: String(form.get("requisitos") ?? "").trim(), status: "aberta", link_ativo: true, link_expira_em: expiration ? new Date(`${expiration}T23:59:59`).toISOString() : null }).select("public_token,cargo").single();
+    if (error) setMessage({ type: "error", text: `Não foi possível criar a vaga: ${error.message}` }); else { setShowForm(false); setHiringType("aumento_quadro"); setMessage({ type: "success", text: `Vaga ${data.cargo} criada. O link público já pode ser compartilhado.` }); await loadData(); } setSaving(false);
   }
 
-  function vacancyLink(vacancy: Vacancy) {
-    return linkPublicoCandidatura(window.location.origin, vacancy.public_token);
+  function vacancyLink(vacancy: Vacancy) { return linkPublicoCandidatura(window.location.origin, vacancy.public_token); }
+  async function copyLink(vacancy: Vacancy) { try { await navigator.clipboard.writeText(vacancyLink(vacancy)); setCopiedToken(vacancy.public_token); window.setTimeout(() => setCopiedToken(""), 2000); } catch { setMessage({ type: "error", text: "Não foi possível copiar automaticamente." }); } }
+  function shareWhatsApp(vacancy: Vacancy) { window.open(`https://wa.me/?text=${encodeURIComponent(textoCompartilhamento(vacancy.cargo, vacancyLink(vacancy)))}`, "_blank", "noopener,noreferrer"); }
+  function shareEmail(vacancy: Vacancy) { window.location.href = `mailto:?subject=${encodeURIComponent(`Oportunidade: ${vacancy.cargo}`)}&body=${encodeURIComponent(textoCompartilhamento(vacancy.cargo, vacancyLink(vacancy)))}`; }
+  async function toggleVacancy(vacancy: Vacancy) { const closing = vacancy.status === "aberta"; const { error } = await supabase.from("rs_vagas").update({ status: closing ? "fechada" : "aberta", link_ativo: !closing, data_fechamento: closing ? new Date().toISOString().slice(0, 10) : null }).eq("id", vacancy.id); if (error) setMessage({ type: "error", text: error.message }); else await loadData(); }
+  async function updateStage(id: string, stage: string) { const { error } = await supabase.from("rs_candidaturas").update({ etapa: stage }).eq("id", id); if (error) setMessage({ type: "error", text: error.message }); else setApplications((current) => current.map((item) => item.id === id ? { ...item, etapa: stage } : item)); }
+  async function openResume(application: Application) { const { data, error } = await supabase.storage.from("curriculos-candidatos").createSignedUrl(application.curriculo_path, 60, { download: application.curriculo_nome }); if (error || !data?.signedUrl) setMessage({ type: "error", text: "Não foi possível abrir o currículo. Confira sua permissão." }); else window.open(data.signedUrl, "_blank", "noopener,noreferrer"); }
+
+  async function readCsv(file: File | null) {
+    if (!file) return; setReading(true); setPreview(null); setMessage(null);
+    try { if (!file.name.toLowerCase().endsWith(".csv")) throw new Error("Envie a planilha no formato CSV."); const text = decodeRecruitmentCsv(await file.arrayBuffer()); setPreview({ file, result: parseRecruitmentHistory(text) }); }
+    catch (error) { setMessage({ type: "error", text: error instanceof Error ? error.message : "Não foi possível ler o CSV." }); }
+    finally { setReading(false); }
   }
 
-  async function copyLink(vacancy: Vacancy) {
+  async function saveHistory() {
+    if (!preview) return; setSaving(true); let importId: string | null = null;
     try {
-      await navigator.clipboard.writeText(vacancyLink(vacancy));
-      setCopiedToken(vacancy.public_token);
-      window.setTimeout(() => setCopiedToken(""), 2000);
-    } catch {
-      setMessage({ type: "error", text: "Não foi possível copiar automaticamente. Abra o link e copie pela barra do navegador." });
-    }
+      const digest = await fileHash(preview.file); const { data: duplicate, error: duplicateError } = await supabase.from("rs_importacoes_historico").select("id").eq("hash_arquivo", digest).in("status", ["concluida", "concluida_com_avisos"]).maybeSingle();
+      if (duplicateError) throw new Error(`Execute a migração 005: ${duplicateError.message}`); if (duplicate) throw new Error("Este mesmo CSV já foi importado.");
+      const { data: imported, error: importError } = await supabase.from("rs_importacoes_historico").insert({ nome_arquivo: preview.file.name, tamanho_arquivo: preview.file.size, hash_arquivo: digest, status: "processando", total_linhas: preview.result.linhasLidas, linhas_validas: preview.result.registros.length, linhas_rejeitadas: preview.result.linhasRejeitadas, avisos: preview.result.avisos.slice(0, 500) }).select("id").single();
+      if (importError) throw new Error(importError.message); importId = imported.id;
+      const payload = preview.result.registros.map((item) => ({ importacao_id: imported.id, ...item }));
+      for (let index = 0; index < payload.length; index += 250) { const { error } = await supabase.from("rs_historico_processos").insert(payload.slice(index, index + 250)); if (error) throw new Error(error.message); }
+      const status = preview.result.avisos.length || preview.result.linhasRejeitadas ? "concluida_com_avisos" : "concluida"; const { error } = await supabase.from("rs_importacoes_historico").update({ status, finalizado_em: new Date().toISOString() }).eq("id", imported.id); if (error) throw new Error(error.message);
+      setPreview(null); setMessage({ type: "success", text: `${payload.length} registros históricos importados. Custos ausentes permaneceram vazios.` }); await loadData();
+    } catch (error) { if (importId) await supabase.from("rs_importacoes_historico").update({ status: "falhou", finalizado_em: new Date().toISOString() }).eq("id", importId); setMessage({ type: "error", text: error instanceof Error ? error.message : "A importação falhou." }); }
+    finally { setSaving(false); }
   }
 
-  function shareWhatsApp(vacancy: Vacancy) {
-    const link = vacancyLink(vacancy);
-    window.open(`https://wa.me/?text=${encodeURIComponent(textoCompartilhamento(vacancy.cargo, link))}`, "_blank", "noopener,noreferrer");
+  const toolbar = <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row"><div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar vaga, colaborador, gestor ou função" className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-xs outline-none focus:border-primary" /></div><div className="relative sm:w-56"><select value={department} onChange={(event) => setDepartment(event.target.value)} className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 pr-8 text-xs font-bold text-slate-600"><option value="todos">Todos os departamentos</option>{departments.map((item) => <option key={item}>{item}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-2.5 h-4 w-4 text-slate-400" /></div></div>;
+
+  return <ModuleWorkspace eyebrow="Premazon RH 360 · Programa estratégico" title="Recrutamento & Seleção" description="Operação de vagas e candidaturas conectada ao histórico analítico para decisões da diretoria." icon={BriefcaseBusiness} items={views} active={view} onChange={setView} accent="from-violet-950 via-indigo-900 to-blue-800" actions={<><button type="button" onClick={() => setView("importar")} className="flex items-center rounded-xl bg-white/10 px-3 py-2 text-xs font-black ring-1 ring-white/20"><Upload className="mr-2 h-4 w-4" />Importar CSV</button><button type="button" onClick={() => setShowForm(true)} className="flex items-center rounded-xl bg-amber-400 px-3 py-2 text-xs font-black text-slate-950"><Plus className="mr-2 h-4 w-4" />Nova vaga</button></>}>
+    <div className="space-y-5">{message && <div role="alert" className={`flex items-start justify-between rounded-xl border px-4 py-3 text-xs font-semibold ${message.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-700"}`}><span>{message.text}</span><button type="button" onClick={() => setMessage(null)}><X className="h-4 w-4" /></button></div>}{!historyReady && <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">O histórico analítico será liberado após executar a migração 005 no Supabase. Vagas e candidaturas continuam funcionando.</div>}{loading ? <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-16 text-sm text-slate-500"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Carregando programa…</div> : <>{view !== "importar" && view !== "relatorios" && toolbar}
+      {view === "dashboard" && <RecruitmentDashboard vacancies={vacancies} applications={applications} admissions={admissions} averageSla={averageSla} historicalSla={averageHistoricalSla} departmentData={departmentData} hiringData={hiringData} />}
+      {view === "base" && <BaseView vacancies={filteredVacancies} applications={applications} history={filteredHistory} candidatesByVacancy={candidatesByVacancy} referenceTime={referenceTime} copiedToken={copiedToken} onCopy={copyLink} onWhatsApp={shareWhatsApp} onEmail={shareEmail} onToggle={toggleVacancy} onStage={updateStage} onResume={openResume} />}
+      {view === "graficos" && <ChartsView departmentData={departmentData} managerData={managerData} hiringData={hiringData} dismissalData={dismissalData} />}
+      {view === "departamento" && <GroupAnalysis title="Contratações por Departamento" description="Admissões registradas no histórico" items={groupCount(filteredHistory.filter((item) => item.data_admissao), (item) => item.departamento)} color="bg-blue-600" icon={Building2} />}
+      {view === "gestor" && <GroupAnalysis title="Análise por Gestor" description="Processos e admissões atribuídos a cada solicitante" items={groupCount(filteredHistory, (item) => item.gestor)} color="bg-emerald-600" icon={UserRoundCheck} />}
+      {view === "contratacao" && <GroupAnalysis title="Tipos de Contratação" description="Composição real dos processos históricos" items={groupCount(filteredHistory, (item) => item.tipo_contratacao)} color="bg-violet-600" icon={Tags} />}
+      {view === "demissao" && <GroupAnalysis title="Tipos de Demissão" description="Distribuição dos desligamentos informados" items={groupCount(filteredHistory, (item) => item.tipo_desligamento)} color="bg-red-600" icon={UserX} />}
+      {view === "motivos" && <GroupAnalysis title="Motivos do Desligamento" description="Motivos declarados na base; registros vazios não são classificados" items={groupCount(filteredHistory, (item) => item.motivo_desligamento)} color="bg-orange-600" icon={FileText} />}
+      {view === "substituicoes" && <SubstitutionsView history={filteredHistory} />}
+      {view === "custos" && <CostsView byDepartment={groupSum(filteredHistory, (item) => item.departamento, (item) => item.custo_colaborador)} byRole={groupSum(filteredHistory, (item) => item.cargo, (item) => item.custo_colaborador)} />}
+      {view === "epis" && <EpiView history={filteredHistory} />}
+      {view === "importar" && <ImportView preview={preview} reading={reading} saving={saving} onRead={readCsv} onSave={saveHistory} ready={historyReady} />}
+      {view === "relatorios" && <ReportsView vacancies={vacancies} applications={applications} history={history} departmentData={departmentData} managerData={managerData} hiringData={hiringData} dismissalData={dismissalData} costByDepartment={costByDepartment} costByRole={costByRole} />}
+    </>}</div>
+    {showForm && <VacancyModal saving={saving} hiringType={hiringType} onHiringType={setHiringType} onClose={() => setShowForm(false)} onSubmit={createVacancy} />}
+  </ModuleWorkspace>;
+}
+
+function RecruitmentDashboard({ vacancies, applications, admissions, averageSla, historicalSla, departmentData, hiringData }: { vacancies: Vacancy[]; applications: Application[]; admissions: HistoryRecord[]; averageSla: number; historicalSla: number | null; departmentData: { name: string; value: number }[]; hiringData: { name: string; value: number }[] }) {
+  const open = vacancies.filter((item) => item.status === "aberta").length;
+  return <div className="space-y-5"><SectionTitle title="Dashboard Executivo" description="Visão combinada da operação atual e dos processos históricos importados." /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="Vagas abertas" value={open} detail={`${vacancies.length} vagas cadastradas`} icon={BriefcaseBusiness} tone="blue" /><MetricCard label="Candidaturas" value={applications.length} detail={`${applications.filter((item) => item.etapa.includes("entrevista")).length} em entrevistas`} icon={Users} tone="violet" /><MetricCard label="Admissões históricas" value={admissions.length} detail="Com data de admissão informada" icon={UserRoundCheck} tone="emerald" /><MetricCard label="SLA médio" value={historicalSla == null ? `${averageSla} dias` : `${historicalSla.toFixed(1)} dias`} detail={historicalSla == null ? "Vagas abertas atuais" : "Processos históricos com SLA"} icon={Timer} tone="amber" /></div><div className="grid gap-5 xl:grid-cols-2"><ProgramPanel title="Contratações por departamento"><MiniBarList items={departmentData.slice(0, 8)} color="bg-blue-600" empty="Importe o histórico para analisar admissões." /></ProgramPanel><ProgramPanel title="Tipos de contratação"><div className="h-80 p-4"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={hiringData} dataKey="value" nameKey="name" outerRadius={100} label={({ name, value }) => `${name}: ${value}`}>{hiringData.map((_, index) => <Cell key={index} fill={colors[index % colors.length]} />)}</Pie><Tooltip /><Legend /></PieChart></ResponsiveContainer></div></ProgramPanel></div></div>;
+}
+
+function BaseView({ vacancies, applications, history, candidatesByVacancy, referenceTime, copiedToken, onCopy, onWhatsApp, onEmail, onToggle, onStage, onResume }: { vacancies: Vacancy[]; applications: Application[]; history: HistoryRecord[]; candidatesByVacancy: Map<string, number>; referenceTime: number; copiedToken: string; onCopy: (vacancy: Vacancy) => void; onWhatsApp: (vacancy: Vacancy) => void; onEmail: (vacancy: Vacancy) => void; onToggle: (vacancy: Vacancy) => void; onStage: (id: string, stage: string) => void; onResume: (application: Application) => void }) {
+  return <div className="space-y-5"><SectionTitle title="Base de Dados Completa" description="Vagas ativas, candidaturas e histórico importado permanecem separados e rastreáveis." /><ProgramPanel title="Vagas e links de candidatura" description="Compartilhe por WhatsApp ou e-mail; o formulário público grava a candidatura com currículo privado"><div className="divide-y divide-slate-100">{vacancies.map((vacancy) => { const isOpen = vacancy.status === "aberta"; const expired = vacancy.link_expira_em && new Date(vacancy.link_expira_em).getTime() < referenceTime; return <article key={vacancy.id} className="p-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Pill tone={isOpen ? "emerald" : "slate"}>{isOpen ? "Aberta" : "Fechada"}</Pill><span className="font-mono text-[10px] text-slate-400">{vacancy.codigo}</span>{expired && <Pill tone="red">Link expirado</Pill>}</div><h4 className="mt-2 truncate text-sm font-black text-slate-900">{vacancy.cargo}</h4><p className="mt-1 text-xs text-slate-500">{vacancy.departamento} · {typeLabels[vacancy.tipo_contratacao] ?? vacancy.tipo_contratacao} · {vacancy.quantidade} vaga(s)</p><p className="mt-1 text-[10px] text-slate-400">Aberta em {formatDate(vacancy.data_abertura)} · {vacancyDays(vacancy.data_abertura, referenceTime)} de {vacancy.sla_dias} dias · {candidatesByVacancy.get(vacancy.id) ?? 0} candidatura(s)</p></div><div className="flex flex-wrap gap-2">{isOpen && !expired && <><button type="button" onClick={() => void onCopy(vacancy)} className="flex items-center rounded-lg border border-slate-300 px-3 py-2 text-[10px] font-black">{copiedToken === vacancy.public_token ? <Check className="mr-1.5 h-4 w-4 text-emerald-600" /> : <ClipboardCopy className="mr-1.5 h-4 w-4" />}{copiedToken === vacancy.public_token ? "Copiado" : "Copiar link"}</button><button type="button" onClick={() => onWhatsApp(vacancy)} className="flex items-center rounded-lg bg-emerald-600 px-3 py-2 text-[10px] font-black text-white"><MessageCircle className="mr-1.5 h-4 w-4" />WhatsApp</button><button type="button" onClick={() => onEmail(vacancy)} className="flex items-center rounded-lg bg-blue-700 px-3 py-2 text-[10px] font-black text-white"><Mail className="mr-1.5 h-4 w-4" />E-mail</button><a href={`/candidatura/${vacancy.public_token}`} target="_blank" rel="noreferrer" className="flex items-center rounded-lg border border-slate-300 px-3 py-2 text-[10px] font-black"><ExternalLink className="mr-1.5 h-4 w-4" />Abrir</a></>}<button type="button" onClick={() => void onToggle(vacancy)} className="flex items-center rounded-lg border border-slate-300 px-3 py-2 text-[10px] font-black">{isOpen ? <CirclePause className="mr-1.5 h-4 w-4" /> : <RefreshCw className="mr-1.5 h-4 w-4" />}{isOpen ? "Fechar" : "Reabrir"}</button></div></div></article>; })}{!vacancies.length && <p className="p-8 text-center text-xs text-slate-500">Nenhuma vaga encontrada.</p>}</div></ProgramPanel>
+    <ProgramPanel title="Candidaturas" description="Currículos são abertos por URL privada com validade de 60 segundos"><div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-xs"><thead className="bg-slate-50 uppercase text-slate-500"><tr><th className="px-5 py-3">Candidato</th><th className="px-5 py-3">Vaga</th><th className="px-5 py-3">Contato</th><th className="px-5 py-3">Recebida</th><th className="px-5 py-3">Etapa</th><th className="px-5 py-3">Currículo</th></tr></thead><tbody className="divide-y divide-slate-100">{applications.map((application) => { const vacancy = vacancies.find((item) => item.id === application.vaga_id); return <tr key={application.id}><td className="px-5 py-4"><p className="font-black text-slate-800">{application.nome}</p><p className="mt-1 font-mono text-[10px] text-slate-400">{application.protocolo}</p></td><td className="px-5 py-4">{vacancy?.cargo ?? "Vaga"}</td><td className="px-5 py-4"><a href={`mailto:${application.email}`} className="text-blue-700">{application.email}</a><p className="mt-1 text-[10px] text-slate-500">{application.telefone} · {application.cidade}/{application.estado}</p></td><td className="px-5 py-4">{new Date(application.criado_em).toLocaleDateString("pt-BR")}</td><td className="px-5 py-4"><select value={application.etapa} onChange={(event) => void onStage(application.id, event.target.value)} className="rounded-lg border border-slate-200 p-2">{Object.entries(stageLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></td><td className="px-5 py-4"><button type="button" onClick={() => void onResume(application)} className="flex items-center font-black text-blue-700"><FileText className="mr-1.5 h-4 w-4" />Abrir</button></td></tr>; })}</tbody></table>{!applications.length && <p className="p-8 text-center text-xs text-slate-500">Nenhuma candidatura recebida.</p>}</div></ProgramPanel>
+    <ProgramPanel title="Histórico da planilha" description={`${history.length} processo(s) no recorte`}><HistoryTable history={history} /></ProgramPanel></div>;
+}
+
+function HistoryTable({ history }: { history: HistoryRecord[] }) {
+  return <div className="overflow-x-auto"><table className="w-full min-w-[1500px] text-left text-[10px]"><thead className="bg-slate-900 uppercase text-white"><tr><th className="px-3 py-3">Cargo</th><th className="px-3 py-3">Departamento</th><th className="px-3 py-3">Gestor</th><th className="px-3 py-3">Abertura</th><th className="px-3 py-3">Tipo</th><th className="px-3 py-3">Contratado</th><th className="px-3 py-3">Admissão</th><th className="px-3 py-3">Demissão</th><th className="px-3 py-3">Desligamento</th><th className="px-3 py-3">SLA</th><th className="px-3 py-3">Custo</th></tr></thead><tbody className="divide-y divide-slate-100">{history.map((item) => <tr key={item.id}><td className="px-3 py-3 font-bold text-slate-800">{item.cargo}</td><td className="px-3 py-3">{item.departamento}</td><td className="px-3 py-3">{item.gestor}</td><td className="px-3 py-3">{formatDate(item.data_abertura)}</td><td className="px-3 py-3">{item.tipo_contratacao}</td><td className="px-3 py-3">{item.colaborador_contratado || "—"}</td><td className="px-3 py-3">{formatDate(item.data_admissao)}</td><td className="px-3 py-3">{formatDate(item.data_demissao)}</td><td className="px-3 py-3">{item.tipo_desligamento || "—"}</td><td className="px-3 py-3">{item.sla_dias == null ? "—" : `${item.sla_dias} d`}</td><td className="px-3 py-3">{item.custo_colaborador == null ? "—" : money.format(item.custo_colaborador)}</td></tr>)}</tbody></table>{!history.length && <p className="p-8 text-center text-xs text-slate-500">Nenhum processo histórico encontrado.</p>}</div>;
+}
+
+function ChartsView({ departmentData, managerData, hiringData, dismissalData }: { departmentData: { name: string; value: number }[]; managerData: { name: string; value: number }[]; hiringData: { name: string; value: number }[]; dismissalData: { name: string; value: number }[] }) {
+  return <div className="space-y-5"><SectionTitle title="Aba de Gráficos (Diretoria)" description="Painel visual do histórico, com agrupamentos reproduzíveis e filtros da base." /><div className="grid gap-5 xl:grid-cols-2"><ChartPanel title="Admissões por departamento" data={departmentData} /><ChartPanel title="Processos por gestor" data={managerData} /><PiePanel title="Tipos de contratação" data={hiringData} /><PiePanel title="Tipos de demissão" data={dismissalData} /></div></div>;
+}
+function ChartPanel({ title, data }: { title: string; data: { name: string; value: number }[] }) { return <ProgramPanel title={title}><div className="h-80 p-4"><ResponsiveContainer width="100%" height="100%"><BarChart data={data.slice(0, 12)} layout="vertical"><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 9 }} /><Tooltip /><Bar dataKey="value" fill="#1d4ed8" radius={[0, 6, 6, 0]} /></BarChart></ResponsiveContainer></div></ProgramPanel>; }
+function PiePanel({ title, data }: { title: string; data: { name: string; value: number }[] }) { return <ProgramPanel title={title}><div className="h-80 p-4"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data} dataKey="value" nameKey="name" outerRadius={100}>{data.map((_, index) => <Cell key={index} fill={colors[index % colors.length]} />)}</Pie><Tooltip /><Legend /></PieChart></ResponsiveContainer></div></ProgramPanel>; }
+
+function GroupAnalysis({ title, description, items, color, icon: Icon }: { title: string; description: string; items: { name: string; value: number }[]; color: string; icon: typeof Building2 }) {
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+  return <div className="space-y-5"><SectionTitle title={title} description={description} /><div className="grid gap-4 sm:grid-cols-3"><MetricCard label="Total no recorte" value={total} icon={Icon} tone="blue" /><MetricCard label="Grupos identificados" value={items.length} icon={Tags} tone="violet" /><MetricCard label="Maior grupo" value={items[0]?.value ?? 0} detail={items[0]?.name ?? "Sem dados"} icon={BarChart3} tone="emerald" /></div><ProgramPanel title="Ranking consolidado"><MiniBarList items={items} color={color} empty="Nenhum dado válido nesta dimensão." /></ProgramPanel></div>;
+}
+
+function SubstitutionsView({ history }: { history: HistoryRecord[] }) {
+  const items = history.filter((item) => item.colaborador_substituido);
+  return <div className="space-y-5"><SectionTitle title="Substituições Realizadas" description="Rastreabilidade entre a vaga, a pessoa substituída e a admissão registrada." /><div className="grid gap-4 sm:grid-cols-3"><MetricCard label="Substituições" value={items.length} icon={RefreshCw} tone="violet" /><MetricCard label="Com admissão" value={items.filter((item) => item.data_admissao).length} icon={UserRoundCheck} tone="emerald" /><MetricCard label="Pendentes" value={items.filter((item) => !item.data_admissao).length} icon={Timer} tone="amber" /></div><ProgramPanel title="Base de substituições"><div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-xs"><thead className="bg-slate-50 uppercase text-slate-500"><tr><th className="px-5 py-3">Departamento</th><th className="px-5 py-3">Cargo</th><th className="px-5 py-3">Substituído</th><th className="px-5 py-3">Contratado</th><th className="px-5 py-3">Admissão</th><th className="px-5 py-3">Gestor</th></tr></thead><tbody className="divide-y divide-slate-100">{items.map((item) => <tr key={item.id}><td className="px-5 py-4">{item.departamento}</td><td className="px-5 py-4 font-bold text-slate-800">{item.cargo}</td><td className="px-5 py-4">{item.colaborador_substituido}</td><td className="px-5 py-4">{item.colaborador_contratado || "—"}</td><td className="px-5 py-4">{formatDate(item.data_admissao)}</td><td className="px-5 py-4">{item.gestor}</td></tr>)}</tbody></table>{!items.length && <p className="p-8 text-center text-xs text-slate-500">Nenhuma substituição identificada.</p>}</div></ProgramPanel></div>;
+}
+
+function CostsView({ byDepartment, byRole }: { byDepartment: { name: string; value: number }[]; byRole: { name: string; value: number }[] }) {
+  const total = byDepartment.reduce((sum, item) => sum + item.value, 0);
+  return <div className="space-y-5"><SectionTitle title="Custos por Setor/Função" description="Somente valores informados na coluna de custo do colaborador; campos vazios não recebem estimativas." /><div className="grid gap-4 sm:grid-cols-3"><MetricCard label="Custo total informado" value={money.format(total)} icon={DollarSign} tone="amber" /><MetricCard label="Setores com custo" value={byDepartment.length} icon={Building2} tone="blue" /><MetricCard label="Funções com custo" value={byRole.length} icon={BriefcaseBusiness} tone="violet" /></div><div className="grid gap-5 xl:grid-cols-2"><ProgramPanel title="Custo por departamento"><MiniBarList items={byDepartment} valueLabel={(value) => money.format(value)} color="bg-amber-500" empty="Nenhum custo informado." /></ProgramPanel><ProgramPanel title="Custo por função"><MiniBarList items={byRole.slice(0, 15)} valueLabel={(value) => money.format(value)} color="bg-violet-600" empty="Nenhum custo informado." /></ProgramPanel></div></div>;
+}
+
+function EpiView({ history }: { history: HistoryRecord[] }) {
+  const withCost = history.filter((item) => item.custo_epi != null || item.custo_uniforme != null);
+  const epi = withCost.reduce((sum, item) => sum + (item.custo_epi ?? 0), 0); const uniforms = withCost.reduce((sum, item) => sum + (item.custo_uniforme ?? 0), 0);
+  return <div className="space-y-5"><SectionTitle title="Custos Uniformes & EPIs" description="Custos e tamanhos reais da planilha. Nenhum valor é inferido pelo cargo." /><div className="grid gap-4 sm:grid-cols-3"><MetricCard label="Custo de EPI" value={withCost.length ? money.format(epi) : "Pendente"} icon={HardHat} tone="amber" /><MetricCard label="Custo de uniforme" value={withCost.length ? money.format(uniforms) : "Pendente"} icon={PackageCheck} tone="blue" /><MetricCard label="Registros com custo" value={withCost.length} detail={`${history.length - withCost.length} sem valor informado`} icon={Sheet} tone="slate" /></div>{!withCost.length ? <WorkspaceEmpty icon={HardHat} title="Custos ainda não informados" description="A planilha atual contém tamanhos, mas não traz valores de EPI/uniforme. Acrescente as colunas Custo EPI e Custo Uniforme no próximo CSV para habilitar os indicadores." /> : <ProgramPanel title="Itens por colaborador"><div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-xs"><thead className="bg-slate-50 uppercase text-slate-500"><tr><th className="px-5 py-3">Colaborador</th><th className="px-5 py-3">Cargo</th><th className="px-5 py-3">Calça</th><th className="px-5 py-3">Camisa</th><th className="px-5 py-3">Bota</th><th className="px-5 py-3">EPI</th><th className="px-5 py-3">Uniforme</th></tr></thead><tbody className="divide-y divide-slate-100">{withCost.map((item) => <tr key={item.id}><td className="px-5 py-4 font-bold">{item.colaborador_contratado || "—"}</td><td className="px-5 py-4">{item.cargo}</td><td className="px-5 py-4">{item.tamanho_calca || "—"}</td><td className="px-5 py-4">{item.tamanho_camisa || "—"}</td><td className="px-5 py-4">{item.tamanho_bota || "—"}</td><td className="px-5 py-4">{item.custo_epi == null ? "—" : money.format(item.custo_epi)}</td><td className="px-5 py-4">{item.custo_uniforme == null ? "—" : money.format(item.custo_uniforme)}</td></tr>)}</tbody></table></div></ProgramPanel>}</div>;
+}
+
+function ImportView({ preview, reading, saving, onRead, onSave, ready }: { preview: ImportPreview | null; reading: boolean; saving: boolean; onRead: (file: File | null) => void; onSave: () => void; ready: boolean }) {
+  return <div className="space-y-5"><SectionTitle title="Importar Planilha CSV" description="Prévia, validação, bloqueio de duplicidade e trilha de auditoria para o histórico de R&S." /><ProgramPanel title="Selecionar arquivo" description="Aceita CSV em UTF-8 ou Windows-1252, separado por vírgula ou ponto e vírgula"><div className="p-5"><label className="block cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 p-10 text-center hover:border-primary"><Upload className="mx-auto h-9 w-9 text-blue-700" /><span className="mt-3 block text-sm font-black text-slate-800">Escolher planilha CSV</span><span className="mt-1 block text-xs text-slate-500">A leitura acontece antes da gravação no banco.</span><input type="file" accept=".csv,text/csv" className="sr-only" disabled={!ready} onChange={(event) => void onRead(event.target.files?.[0] ?? null)} />{reading && <Loader2 className="mx-auto mt-4 h-5 w-5 animate-spin" />}</label></div></ProgramPanel>{preview && <ProgramPanel title="Prévia da importação" description={preview.file.name}><div className="grid gap-4 p-5 sm:grid-cols-3"><MetricCard label="Linhas lidas" value={preview.result.linhasLidas} icon={Sheet} tone="blue" /><MetricCard label="Registros válidos" value={preview.result.registros.length} icon={Check} tone="emerald" /><MetricCard label="Rejeitados" value={preview.result.linhasRejeitadas} icon={X} tone="red" /></div>{preview.result.avisos.length > 0 && <div className="mx-5 mb-5 max-h-40 overflow-y-auto rounded-xl bg-amber-50 p-4 text-[10px] leading-5 text-amber-800">{preview.result.avisos.slice(0, 30).map((warning) => <p key={warning}>• {warning}</p>)}</div>}<div className="flex justify-end border-t border-slate-100 p-5"><button type="button" onClick={() => void onSave()} disabled={saving || !preview.result.registros.length} className="flex items-center rounded-xl bg-primary px-5 py-3 text-xs font-black text-white disabled:opacity-50">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}Confirmar e salvar no banco</button></div></ProgramPanel>}</div>;
+}
+
+function ReportsView({ vacancies, applications, history, departmentData, managerData, hiringData, dismissalData, costByDepartment, costByRole }: { vacancies: Vacancy[]; applications: Application[]; history: HistoryRecord[]; departmentData: { name: string; value: number }[]; managerData: { name: string; value: number }[]; hiringData: { name: string; value: number }[]; dismissalData: { name: string; value: number }[]; costByDepartment: { name: string; value: number }[]; costByRole: { name: string; value: number }[] }) {
+  function exportCsv() {
+    const headers = ["Cargo", "Departamento", "Gestor", "Abertura", "Tipo contratação", "Contratado", "Admissão", "Demissão", "Tipo desligamento", "Motivo", "SLA", "Custo colaborador"];
+    const rows = history.map((item) => [item.cargo, item.departamento, item.gestor, item.data_abertura ?? "", item.tipo_contratacao, item.colaborador_contratado ?? "", item.data_admissao ?? "", item.data_demissao ?? "", item.tipo_desligamento ?? "", item.motivo_desligamento ?? "", item.sla_dias ?? "", item.custo_colaborador ?? ""]);
+    const csv = [headers, ...rows].map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(";")).join("\n"); const url = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" })); const link = document.createElement("a"); link.href = url; link.download = `relatorio-rs-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(url);
   }
+  return <div className="space-y-5 print:space-y-3"><div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><SectionTitle title="Relatórios & Impressão" description="Resumo executivo para diretoria, com exportação da base histórica." /><div className="flex gap-2 print:hidden"><button type="button" onClick={exportCsv} className="flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-black"><Download className="mr-2 h-4 w-4" />Exportar CSV</button><button type="button" onClick={() => window.print()} className="flex items-center rounded-xl bg-primary px-4 py-2.5 text-xs font-black text-white"><Printer className="mr-2 h-4 w-4" />Imprimir</button></div></div><div className="grid gap-4 sm:grid-cols-4"><MetricCard label="Vagas cadastradas" value={vacancies.length} icon={BriefcaseBusiness} tone="blue" /><MetricCard label="Candidaturas" value={applications.length} icon={Users} tone="violet" /><MetricCard label="Processos históricos" value={history.length} icon={Database} tone="emerald" /><MetricCard label="Desligamentos" value={history.filter((item) => item.data_demissao || item.tipo_desligamento).length} icon={UserX} tone="red" /></div><div className="grid gap-5 xl:grid-cols-2"><ProgramPanel title="Contratações por departamento"><MiniBarList items={departmentData.slice(0, 10)} /></ProgramPanel><ProgramPanel title="Processos por gestor"><MiniBarList items={managerData.slice(0, 10)} color="bg-emerald-600" /></ProgramPanel><ProgramPanel title="Tipos de contratação"><MiniBarList items={hiringData} color="bg-violet-600" /></ProgramPanel><ProgramPanel title="Tipos de demissão"><MiniBarList items={dismissalData} color="bg-red-600" /></ProgramPanel><ProgramPanel title="Custos por departamento"><MiniBarList items={costByDepartment} valueLabel={(value) => money.format(value)} color="bg-amber-500" /></ProgramPanel><ProgramPanel title="Custos por função"><MiniBarList items={costByRole.slice(0, 10)} valueLabel={(value) => money.format(value)} color="bg-cyan-600" /></ProgramPanel></div></div>;
+}
 
-  function shareEmail(vacancy: Vacancy) {
-    const link = vacancyLink(vacancy);
-    window.location.href = `mailto:?subject=${encodeURIComponent(`Oportunidade: ${vacancy.cargo}`)}&body=${encodeURIComponent(textoCompartilhamento(vacancy.cargo, link))}`;
-  }
-
-  async function toggleVacancy(vacancy: Vacancy) {
-    const closing = vacancy.status === "aberta";
-    const { error } = await supabase.from("rs_vagas").update({
-      status: closing ? "fechada" : "aberta", link_ativo: !closing,
-      data_fechamento: closing ? new Date().toISOString().slice(0, 10) : null,
-    }).eq("id", vacancy.id);
-    if (error) setMessage({ type: "error", text: `Não foi possível alterar a vaga: ${error.message}` });
-    else await loadData();
-  }
-
-  async function updateStage(applicationId: string, stage: string) {
-    const { error } = await supabase.from("rs_candidaturas").update({ etapa: stage }).eq("id", applicationId);
-    if (error) setMessage({ type: "error", text: `Não foi possível mudar a etapa: ${error.message}` });
-    else setApplications((current) => current.map((item) => item.id === applicationId ? { ...item, etapa: stage } : item));
-  }
-
-  async function openResume(application: Application) {
-    const { data, error } = await supabase.storage.from("curriculos-candidatos")
-      .createSignedUrl(application.curriculo_path, 60, { download: application.curriculo_nome });
-    if (error || !data?.signedUrl) {
-      setMessage({ type: "error", text: "Não foi possível abrir o currículo. Confira sua permissão de acesso." });
-      return;
-    }
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-  }
-
-  return (
-    <div className="space-y-7 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div><p className="text-sm font-semibold text-secondary">Recrutamento & Seleção</p><h2 className="mt-1 text-2xl font-bold tracking-tight text-gray-900">Vagas e candidaturas</h2><p className="mt-1 text-sm text-gray-500">Crie a vaga, compartilhe o link e acompanhe o processo em um só lugar.</p></div>
-        <button type="button" onClick={() => setShowForm(true)} className="flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-primary-dark"><Plus className="mr-2 h-4 w-4" /> Nova vaga</button>
-      </div>
-
-      {message && <div role="alert" className={`flex items-start justify-between rounded-xl border px-4 py-3 text-sm ${message.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-700"}`}><span>{message.text}</span><button aria-label="Fechar aviso" type="button" onClick={() => setMessage(null)}><X className="h-4 w-4" /></button></div>}
-
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: "Vagas abertas", value: openVacancies.length, icon: BriefcaseBusiness, color: "text-blue-700 bg-blue-50" },
-          { label: "Candidaturas", value: applications.length, icon: Users, color: "text-violet-700 bg-violet-50" },
-          { label: "Em entrevistas", value: applications.filter((item) => item.etapa.includes("entrevista")).length, icon: UserRoundCheck, color: "text-emerald-700 bg-emerald-50" },
-          { label: "Tempo médio aberto", value: `${averageSla} dias`, icon: Timer, color: "text-amber-700 bg-amber-50" },
-        ].map(({ label, value, icon: Icon, color }) => <div key={label} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p><p className="mt-2 text-2xl font-bold text-gray-900">{value}</p></div><div className={`rounded-xl p-3 ${color}`}><Icon className="h-5 w-5" /></div></div></div>)}
-      </section>
-
-      <section className="rounded-xl border border-gray-100 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-gray-100 p-5 md:flex-row md:items-center md:justify-between"><div><h3 className="font-bold text-gray-900">Vagas</h3><p className="mt-1 text-xs text-gray-500">Os links deixam de aceitar respostas quando a vaga é fechada.</p></div><div className="relative w-full md:w-80"><Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar vaga, setor ou solicitante" className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-primary" /></div></div>
-        {loading ? <div className="flex items-center justify-center p-12 text-sm text-gray-500"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Carregando dados…</div>
-          : filteredVacancies.length === 0 ? <div className="p-12 text-center"><BriefcaseBusiness className="mx-auto h-10 w-10 text-gray-300" /><p className="mt-3 text-sm font-semibold text-gray-700">Nenhuma vaga encontrada</p><p className="mt-1 text-xs text-gray-500">Crie a primeira vaga para gerar um link de candidatura.</p></div>
-          : <div className="divide-y divide-gray-100">{filteredVacancies.map((vacancy) => {
-            const isOpen = vacancy.status === "aberta";
-            const expired = vacancy.link_expira_em && new Date(vacancy.link_expira_em).getTime() < referenceTime;
-            return <article key={vacancy.id} className="p-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${isOpen ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>{isOpen ? "Aberta" : "Fechada"}</span><span className="font-mono text-xs text-gray-500">{vacancy.codigo}</span>{expired && <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700">Link expirado</span>}</div><h4 className="mt-2 truncate font-bold text-gray-900">{vacancy.cargo}</h4><p className="mt-1 text-sm text-gray-500">{vacancy.departamento} · {typeLabels[vacancy.tipo_contratacao] ?? vacancy.tipo_contratacao} · {vacancy.quantidade} vaga(s)</p><p className="mt-1 text-xs text-gray-400">Aberta em {formatDate(vacancy.data_abertura)} · {vacancyDays(vacancy.data_abertura, referenceTime)} de {vacancy.sla_dias} dias de SLA · {candidatesByVacancy.get(vacancy.id) ?? 0} candidatura(s)</p></div>
-              <div className="flex flex-wrap gap-2">{isOpen && !expired && <><button type="button" onClick={() => void copyLink(vacancy)} className="flex items-center rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">{copiedToken === vacancy.public_token ? <Check className="mr-1.5 h-4 w-4 text-emerald-600" /> : <ClipboardCopy className="mr-1.5 h-4 w-4" />}{copiedToken === vacancy.public_token ? "Copiado" : "Copiar link"}</button><button type="button" onClick={() => shareWhatsApp(vacancy)} className="flex items-center rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"><MessageCircle className="mr-1.5 h-4 w-4" />WhatsApp</button><button type="button" onClick={() => shareEmail(vacancy)} className="flex items-center rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white hover:bg-blue-800"><Mail className="mr-1.5 h-4 w-4" />E-mail</button><a href={`/candidatura/${vacancy.public_token}`} target="_blank" rel="noreferrer" className="flex items-center rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"><ExternalLink className="mr-1.5 h-4 w-4" />Abrir</a></>}
-                <button type="button" onClick={() => void toggleVacancy(vacancy)} className="flex items-center rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">{isOpen ? <CirclePause className="mr-1.5 h-4 w-4" /> : <RefreshCw className="mr-1.5 h-4 w-4" />}{isOpen ? "Fechar" : "Reabrir"}</button></div></div></article>;
-          })}</div>}
-      </section>
-
-      <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-        <div className="border-b border-gray-100 p-5"><h3 className="font-bold text-gray-900">Candidaturas recentes</h3><p className="mt-1 text-xs text-gray-500">Currículos são abertos por um link privado válido por 60 segundos.</p></div>
-        {applications.length === 0 ? <div className="p-10 text-center text-sm text-gray-500">As candidaturas enviadas pelo formulário aparecerão aqui.</div> : <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500"><tr><th className="px-5 py-3">Candidato</th><th className="px-5 py-3">Vaga</th><th className="px-5 py-3">Contato</th><th className="px-5 py-3">Recebida</th><th className="px-5 py-3">Etapa</th><th className="px-5 py-3">Currículo</th></tr></thead><tbody className="divide-y divide-gray-100">{applications.map((application) => {
-          const vacancy = vacancies.find((item) => item.id === application.vaga_id);
-          return <tr key={application.id} className="hover:bg-gray-50/60"><td className="px-5 py-4"><p className="font-semibold text-gray-900">{application.nome}</p><p className="mt-1 font-mono text-xs text-gray-400">{application.protocolo}</p></td><td className="px-5 py-4"><p className="font-medium text-gray-700">{vacancy?.cargo ?? "Vaga"}</p><p className="mt-1 text-xs text-gray-400">{vacancy?.codigo}</p></td><td className="px-5 py-4"><a href={`mailto:${application.email}`} className="text-blue-700 hover:underline">{application.email}</a><p className="mt-1 text-xs text-gray-500">{application.telefone} · {application.cidade}/{application.estado}</p></td><td className="px-5 py-4 text-gray-600">{new Date(application.criado_em).toLocaleDateString("pt-BR")}</td><td className="px-5 py-4"><div className="relative"><select value={application.etapa} onChange={(event) => void updateStage(application.id, event.target.value)} className="appearance-none rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-8 text-xs font-semibold text-gray-700 outline-none focus:border-primary">{Object.entries(stageLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown className="pointer-events-none absolute right-2 top-2.5 h-3.5 w-3.5 text-gray-400" /></div></td><td className="px-5 py-4"><button type="button" onClick={() => void openResume(application)} className="flex items-center text-xs font-bold text-blue-700 hover:text-blue-900"><FileText className="mr-1.5 h-4 w-4" />Abrir arquivo</button></td></tr>;
-        })}</tbody></table></div>}
-      </section>
-
-      {showForm && <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-gray-950/50 p-4 backdrop-blur-sm md:p-8"><div className="w-full max-w-4xl rounded-2xl bg-white shadow-2xl"><div className="flex items-center justify-between border-b border-gray-100 px-6 py-5"><div><h3 className="text-lg font-bold text-gray-900">Criar nova vaga</h3><p className="mt-1 text-xs text-gray-500">Ao salvar, o sistema gera automaticamente um link exclusivo.</p></div><button aria-label="Fechar" type="button" onClick={() => setShowForm(false)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"><X className="h-5 w-5" /></button></div>
-        <form onSubmit={createVacancy} className="space-y-5 p-6"><div className="grid gap-5 md:grid-cols-2">
-          <label className="text-sm font-semibold text-gray-700">Cargo *<input name="cargo" required maxLength={160} className={fieldClass} /></label><label className="text-sm font-semibold text-gray-700">Departamento *<input name="departamento" required maxLength={120} className={fieldClass} /></label><label className="text-sm font-semibold text-gray-700">Solicitante da vaga *<input name="solicitante" required maxLength={160} className={fieldClass} /></label><label className="text-sm font-semibold text-gray-700">Tipo de contratação *<select name="tipo_contratacao" value={hiringType} onChange={(event) => setHiringType(event.target.value)} className={fieldClass}>{Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-          {hiringType === "substituicao" && <label className="text-sm font-semibold text-gray-700 md:col-span-2">Colaborador substituído<input name="colaborador_substituido" maxLength={160} className={fieldClass} /></label>}
-          <label className="text-sm font-semibold text-gray-700">Data de abertura *<input name="data_abertura" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={fieldClass} /></label><label className="text-sm font-semibold text-gray-700">Quantidade *<input name="quantidade" type="number" required min="1" max="100" defaultValue="1" className={fieldClass} /></label><label className="text-sm font-semibold text-gray-700">SLA em dias *<input name="sla_dias" type="number" required min="1" max="365" defaultValue="30" className={fieldClass} /></label><label className="text-sm font-semibold text-gray-700">Custo mensal estimado<input name="custo_colaborador" type="number" min="0" step="0.01" className={fieldClass} /></label><label className="text-sm font-semibold text-gray-700">Localidade<input name="localidade" maxLength={160} placeholder="Ex.: Manaus/AM" className={fieldClass} /></label><label className="text-sm font-semibold text-gray-700">Modalidade *<select name="modalidade" defaultValue="presencial" className={fieldClass}><option value="presencial">Presencial</option><option value="hibrido">Híbrido</option><option value="remoto">Remoto</option></select></label>
-          <label className="text-sm font-semibold text-gray-700 md:col-span-2">Descrição da oportunidade *<textarea name="descricao" required minLength={20} maxLength={5000} rows={4} className={fieldClass} /></label><label className="text-sm font-semibold text-gray-700 md:col-span-2">Requisitos *<textarea name="requisitos" required minLength={10} maxLength={5000} rows={4} className={fieldClass} placeholder="Uma exigência por linha facilita a leitura." /></label><label className="text-sm font-semibold text-gray-700">Data de expiração do link (opcional)<input name="link_expira_em" type="date" min={new Date().toISOString().slice(0, 10)} className={fieldClass} /><span className="mt-1 block text-xs font-normal text-gray-400">Sem data, o link vale até a vaga ser fechada.</span></label>
-        </div><div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end"><button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancelar</button><button type="submit" disabled={saving} className="flex items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white hover:bg-primary-dark disabled:opacity-60">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}{saving ? "Criando…" : "Criar vaga e gerar link"}</button></div></form>
-      </div></div>}
-    </div>
-  );
+function VacancyModal({ saving, hiringType, onHiringType, onClose, onSubmit }: { saving: boolean; hiringType: string; onHiringType: (value: string) => void; onClose: () => void; onSubmit: (event: React.FormEvent<HTMLFormElement>) => void }) {
+  return <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm md:p-8"><div className="w-full max-w-4xl rounded-2xl bg-white shadow-2xl"><div className="flex items-center justify-between border-b border-slate-100 px-6 py-5"><div><h3 className="text-lg font-black text-slate-900">Criar nova vaga</h3><p className="mt-1 text-xs text-slate-500">Ao salvar, o sistema gera um link público exclusivo.</p></div><button type="button" onClick={onClose}><X className="h-5 w-5 text-slate-400" /></button></div><form onSubmit={onSubmit} className="space-y-5 p-6"><div className="grid gap-5 md:grid-cols-2"><label className="text-xs font-bold">Cargo *<input name="cargo" required maxLength={160} className={fieldClass} /></label><label className="text-xs font-bold">Departamento *<input name="departamento" required maxLength={120} className={fieldClass} /></label><label className="text-xs font-bold">Solicitante *<input name="solicitante" required maxLength={160} className={fieldClass} /></label><label className="text-xs font-bold">Tipo de contratação *<select name="tipo_contratacao" value={hiringType} onChange={(event) => onHiringType(event.target.value)} className={fieldClass}>{Object.entries(typeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>{hiringType === "substituicao" && <label className="text-xs font-bold md:col-span-2">Colaborador substituído<input name="colaborador_substituido" maxLength={160} className={fieldClass} /></label>}<label className="text-xs font-bold">Data de abertura *<input name="data_abertura" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} className={fieldClass} /></label><label className="text-xs font-bold">Quantidade *<input name="quantidade" type="number" required min="1" max="100" defaultValue="1" className={fieldClass} /></label><label className="text-xs font-bold">SLA em dias *<input name="sla_dias" type="number" required min="1" max="365" defaultValue="30" className={fieldClass} /></label><label className="text-xs font-bold">Custo mensal estimado<input name="custo_colaborador" type="number" min="0" step="0.01" className={fieldClass} /></label><label className="text-xs font-bold">Localidade<input name="localidade" maxLength={160} className={fieldClass} /></label><label className="text-xs font-bold">Modalidade<select name="modalidade" defaultValue="presencial" className={fieldClass}><option value="presencial">Presencial</option><option value="hibrido">Híbrido</option><option value="remoto">Remoto</option></select></label><label className="text-xs font-bold md:col-span-2">Descrição *<textarea name="descricao" required minLength={20} maxLength={5000} rows={4} className={fieldClass} /></label><label className="text-xs font-bold md:col-span-2">Requisitos *<textarea name="requisitos" required minLength={10} maxLength={5000} rows={4} className={fieldClass} /></label><label className="text-xs font-bold">Expiração do link<input name="link_expira_em" type="date" min={new Date().toISOString().slice(0, 10)} className={fieldClass} /></label></div><div className="flex justify-end gap-3 border-t border-slate-100 pt-5"><button type="button" onClick={onClose} className="rounded-xl border border-slate-300 px-5 py-2.5 text-xs font-bold">Cancelar</button><button disabled={saving} className="flex items-center rounded-xl bg-primary px-5 py-2.5 text-xs font-black text-white disabled:opacity-50">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}Criar vaga e gerar link</button></div></form></div></div>;
 }

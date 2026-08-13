@@ -54,6 +54,14 @@ Na base recebida, 73 linhas foram lidas: 34 possuem as 15 notas reconhecíveis e
 - `td_treinamentos`: calendário, modalidade, carga, fornecedor, custo e situação;
 - `td_participacoes`: inscrição, presença, aprovação e certificado;
 - `td_avaliacoes_eficacia`: comparação posterior e resultado da ação.
+- `td_pdis`: objetivo, prazo, status e vínculo com o sinal de desempenho;
+- `td_pdi_acoes`: ações mensuráveis, curso relacionado, resultado esperado e andamento.
+
+## Áreas do programa
+
+O menu interno preserva as dez visões do programa original: Dashboard Executivo, Ficha de Colaboradores, Gerar PDI Individual, Tipos de Treinamentos, Matriz por Setor, Necessidades (LNT), Gestão de Treinamentos, Custos & ROI, Cronograma Anual e Matriz 9-Box.
+
+O potencial do 9-Box é estimado somente quando existem notas nas competências declaradas. O ROI exige que o usuário informe um benefício financeiro mensurado. A aplicação não usa notas, potencial ou retorno padrão para preencher ausências.
 
 O bucket `td-documentos` é privado e aceita certificados e evidências em PDF, PNG, JPEG ou XLSX, com limite de 10 MB.
 
@@ -74,6 +82,7 @@ Execute no SQL Editor do Supabase:
 
 ```text
 database/migrations/20260813_003_treinamento_desenvolvimento.sql
+database/migrations/20260813_005_programas_estrategicos.sql
 ```
 
 Depois, atualize a implantação da Vercel. Este módulo não adiciona novas variáveis de ambiente.

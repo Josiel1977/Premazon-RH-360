@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 0.5.0 — 2026-08-13
+
+- navegação interna própria e responsiva para Rumo ao Topo, T&D e Recrutamento & Seleção;
+- oito áreas restauradas no Rumo ao Topo, incluindo bases temáticas, visão por setor e relatório executivo;
+- dez áreas de T&D: ficha com radar, PDI, catálogo, matriz por setor, LNT, gestão, custos/ROI, cronograma e 9-Box;
+- treze áreas de R&S, unindo vagas e candidaturas atuais ao histórico analítico da planilha;
+- importação CSV de R&S com prévia, hash contra duplicidade, lotes, avisos e auditoria;
+- PDI e ações persistentes no Supabase, com permissões por perfil;
+- custos de EPI/uniforme e ROI deixam de usar números simulados: ausências aparecem como pendência;
+- testes para agregações de R&S, SLA inválido, 9-Box e potencial com dados parciais.
+
 ## 0.4.0 — 2026-08-13
 
 - menu lateral premium, responsivo e agrupado nas nove áreas estratégicas de RH;
