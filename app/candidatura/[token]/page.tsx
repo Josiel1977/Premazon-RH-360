@@ -160,6 +160,20 @@ export default function PublicApplicationPage() {
             </div>
             <div className="grid gap-5 md:grid-cols-2">
               <div>
+                <label htmlFor="cpf" className="text-sm font-semibold text-slate-700">CPF *</label>
+                <input id="cpf" name="cpf" required inputMode="numeric" maxLength={18} placeholder="000.000.000-00" className={inputClass} />
+              </div>
+              <div>
+                <label htmlFor="data_nascimento" className="text-sm font-semibold text-slate-700">Data de nascimento *</label>
+                <input id="data_nascimento" name="data_nascimento" type="date" required min="1920-01-01" max={new Date().toISOString().slice(0, 10)} autoComplete="bday" className={inputClass} />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="nome_mae" className="text-sm font-semibold text-slate-700">Nome completo da mãe *</label>
+              <input id="nome_mae" name="nome_mae" required minLength={3} maxLength={180} autoComplete="off" className={inputClass} />
+            </div>
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
                 <label htmlFor="email" className="text-sm font-semibold text-slate-700">E-mail *</label>
                 <input id="email" name="email" type="email" required maxLength={254} autoComplete="email" className={inputClass} />
               </div>
@@ -216,7 +230,7 @@ export default function PublicApplicationPage() {
 
             <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-5 text-slate-600">
               <input name="consentimento_lgpd" value="true" type="checkbox" required className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-800" />
-              <span>Autorizo o tratamento dos dados enviados para esta seleção e para contato sobre a candidatura. Sei que posso solicitar informações ou exclusão ao RH. *</span>
+              <span>Autorizo o tratamento dos dados enviados, incluindo CPF, nascimento e filiação materna, para minha identificação, participação nesta seleção e contato pelo RH. Sei que posso solicitar informações ou exclusão ao RH. *</span>
             </label>
 
             {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}

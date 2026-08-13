@@ -16,12 +16,20 @@ import {
   CloudSun,
   Crown,
   Database,
+  FolderKanban,
   GraduationCap,
+  HardHat,
   HeartHandshake,
+  HeartPulse,
   LayoutDashboard,
+  Lightbulb,
   LogOut,
   Menu,
+  Megaphone,
+  MessageCircle,
+  RefreshCw,
   Search,
+  Settings,
   Siren,
   ShieldCheck,
   Sparkles,
@@ -35,9 +43,10 @@ import {
 
 type MenuLink = {
   name: string;
-  href: string;
-  icon: LucideIcon;
+  href?: string;
+  icon?: LucideIcon;
   badge?: string;
+  section?: boolean;
 };
 
 type MenuGroup = {
@@ -86,16 +95,56 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
+    name: "Projetos de RH",
+    icon: FolderKanban,
+    links: [
+      { name: "Rumo ao Topo", href: "/dashboard/rumo-ao-topo", icon: Crown },
+      { name: "Futuros projetos estratégicos", section: true },
+      { name: "Campanhas de Engajamento", href: "/dashboard/projetos-rh#campanhas", icon: Megaphone },
+      { name: "Reconhecimento", href: "/dashboard/projetos-rh#reconhecimento", icon: HeartHandshake },
+      { name: "Qualidade de Vida", href: "/dashboard/projetos-rh#qualidade-vida", icon: HeartPulse },
+      { name: "Segurança", href: "/dashboard/projetos-rh#seguranca", icon: HardHat },
+    ],
+  },
+  {
     name: "Clima e Engajamento",
     icon: CloudSun,
-    links: [{ name: "Visão geral", href: "/dashboard/modulos/clima-engajamento", icon: LayoutDashboard }],
+    links: [
+      { name: "Dashboard Geral", href: "/dashboard/clima-engajamento#dashboard", icon: LayoutDashboard },
+      { name: "Pesquisas de Clima", href: "/dashboard/clima-engajamento#pesquisas", icon: ClipboardCheck },
+      { name: "Pesquisa Pulso", href: "/dashboard/clima-engajamento#pulso", icon: Sparkles },
+      { name: "Termômetro do Humor", href: "/dashboard/clima-engajamento#humor", icon: CloudSun },
+      { name: "Voz do Colaborador", href: "/dashboard/clima-engajamento#voz", icon: MessageCircle },
+      { name: "Ideias e Sugestões", href: "/dashboard/clima-engajamento#ideias", icon: Lightbulb },
+      { name: "Reconhecimento", href: "/dashboard/clima-engajamento#reconhecimento", icon: HeartHandshake },
+      { name: "Campanhas de Engajamento", href: "/dashboard/clima-engajamento#campanhas", icon: Megaphone },
+      { name: "Avaliação da Liderança", href: "/dashboard/clima-engajamento#lideranca", icon: UserCheck },
+      { name: "Clima por Setor", href: "/dashboard/clima-engajamento#setor", icon: Building2 },
+      { name: "Indicadores de Engajamento", href: "/dashboard/clima-engajamento#indicadores", icon: BarChart3 },
+      { name: "Pontos de Atenção", href: "/dashboard/clima-engajamento#atencao", icon: Search },
+      { name: "Plano de Ação", href: "/dashboard/clima-engajamento#plano", icon: Target },
+      { name: "Acompanhamento das Ações", href: "/dashboard/clima-engajamento#acompanhamento", icon: RefreshCw },
+      { name: "Comparativos", href: "/dashboard/clima-engajamento#comparativos", icon: Users },
+      { name: "Análise Inteligente", href: "/dashboard/clima-engajamento#analise", icon: Sparkles },
+      { name: "Relatórios", href: "/dashboard/clima-engajamento#relatorios", icon: BarChart3 },
+      { name: "Configurações", href: "/dashboard/clima-engajamento#configuracoes", icon: Settings },
+    ],
   },
   {
     name: "Carreira e Sucessão",
     icon: Crown,
     links: [
-      { name: "Rumo ao Topo", href: "/dashboard/rumo-ao-topo", icon: Crown },
-      { name: "Trilhas e sucessão", href: "/dashboard/modulos/carreira-sucessao", icon: Sparkles },
+      { name: "Dashboard de Carreira", href: "/dashboard/carreira-sucessao#dashboard", icon: LayoutDashboard },
+      { name: "Plano de Carreira", href: "/dashboard/carreira-sucessao#plano", icon: BriefcaseBusiness },
+      { name: "Trilhas de Carreira", href: "/dashboard/carreira-sucessao#trilhas", icon: GraduationCap },
+      { name: "Mapa de Talentos", href: "/dashboard/carreira-sucessao#talentos", icon: Users },
+      { name: "Identificação de Potenciais", href: "/dashboard/carreira-sucessao#potenciais", icon: Sparkles },
+      { name: "Movimentação Interna", href: "/dashboard/carreira-sucessao#movimentacao", icon: RefreshCw },
+      { name: "Plano de Desenvolvimento de Carreira", href: "/dashboard/carreira-sucessao#desenvolvimento", icon: Target },
+      { name: "Sucessão", href: "/dashboard/carreira-sucessao#sucessao", icon: Crown },
+      { name: "Banco de Talentos", href: "/dashboard/carreira-sucessao#banco", icon: UserCheck },
+      { name: "Histórico de Evolução", href: "/dashboard/carreira-sucessao#historico", icon: ClipboardCheck },
+      { name: "Indicadores de Carreira", href: "/dashboard/carreira-sucessao#indicadores", icon: BarChart3 },
     ],
   },
   {
@@ -117,17 +166,21 @@ const menuGroups: MenuGroup[] = [
   },
 ];
 
-function routeIsActive(pathname: string, href: string) {
-  if (href === "/dashboard" || href === "/dashboard/admissao") return pathname === href;
-  return pathname === href || pathname.startsWith(`${href}/`);
+function routeIsActive(pathname: string, locationHash: string, href: string) {
+  const [targetPath, targetHash = ""] = href.split("#");
+  const normalizedHash = locationHash.replace(/^#/, "");
+  if (targetHash) return pathname === targetPath && normalizedHash === targetHash;
+  if (targetPath === "/dashboard" || targetPath === "/dashboard/admissao") return pathname === targetPath;
+  return pathname === targetPath || pathname.startsWith(`${targetPath}/`);
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [locationHash, setLocationHash] = useState("");
   const activeGroup = useMemo(
-    () => menuGroups.find((group) => group.links.some((link) => routeIsActive(pathname, link.href)))?.name,
-    [pathname],
+    () => menuGroups.find((group) => group.links.some((link) => link.href && routeIsActive(pathname, locationHash, link.href)))?.name,
+    [locationHash, pathname],
   );
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -138,6 +191,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (data.user?.email) setUserEmail(data.user.email);
     });
   }, []);
+
+  useEffect(() => {
+    const syncHash = () => setLocationHash(window.location.hash);
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    return () => window.removeEventListener("hashchange", syncHash);
+  }, [pathname]);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -192,8 +252,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {isOpen && (
                   <ul className="ml-7 space-y-1 border-l border-white/10 pb-2 pl-4 pr-2">
                     {group.links.map((link) => {
+                      if (link.section || !link.href || !link.icon) {
+                        return <li key={`${group.name}-${link.name}`} className="px-3 pb-1 pt-3 text-[9px] font-black uppercase tracking-[0.14em] text-blue-300/70">{link.name}</li>;
+                      }
                       const LinkIcon = link.icon;
-                      const isActive = routeIsActive(pathname, link.href);
+                      const isActive = routeIsActive(pathname, locationHash, link.href);
                       return (
                         <li key={link.href}>
                           <Link
