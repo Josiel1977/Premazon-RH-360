@@ -59,6 +59,8 @@ Execute no SQL Editor do Supabase, depois da migração 010:
 ```text
 database/migrations/20260813_011_perfil_comportamental_colaborador.sql
 database/migrations/20260813_012_importacao_cadastro_mestre.sql
+database/migrations/20260813_013_compatibilidade_importacao_colaboradores.sql
+database/migrations/20260813_014_compatibilidade_cargos_importacao.sql
 ```
 
 Se o cadastro mestre estiver vazio, use **Colaborador 360 > Importar ativos** depois da migração 012. A carga apresenta prévia, rejeita rodapés, não duplica nomes já cadastrados e registra o hash do arquivo. Depois, abra **Gestão de Pessoas > Saúde do Sistema** e confirme as verificações das migrações 011 e 012. A aplicação reutiliza `SUPABASE_SECRET_KEY`; não existe variável de ambiente adicional.

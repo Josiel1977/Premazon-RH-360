@@ -6,6 +6,10 @@ insert into public.rh360_migracoes(versao, nome)
 values ('012', 'Importação controlada do cadastro mestre')
 on conflict (versao) do update set nome = excluded.nome;
 
+-- Compatibilidade com a tabela setores criada pelo schema inicial, que usava
+-- created_at em inglês. A fundação atual utiliza criado_em.
+alter table public.setores add column if not exists criado_em timestamptz not null default now();
+
 create table if not exists public.rh360_importacoes_colaboradores (
   id uuid primary key default gen_random_uuid(),
   arquivo_nome text not null check (char_length(arquivo_nome) between 1 and 255),
@@ -132,7 +136,7 @@ begin
       order by created_at limit 1;
 
       if v_cargo_id is null then
-        insert into public.cargos(cargo) values (left(v_funcao, 255))
+        insert into public.cargos(cargo, nivel) values (left(v_funcao, 255), 'Não informado')
         returning id into v_cargo_id;
       end if;
     end if;
