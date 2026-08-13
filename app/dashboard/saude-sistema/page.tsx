@@ -36,7 +36,8 @@ export default function SystemHealthPage() {
     const dataCenterPromise = supabase.rpc("rh360_diagnostico_central_dados");
     const admissionPromise = supabase.rpc("rh360_diagnostico_admissao");
     const onboardingPromise = supabase.rpc("rh360_diagnostico_onboarding_360");
-    const [runtime, database, dataCenter, admission, onboarding] = await Promise.allSettled([runtimePromise, databasePromise, dataCenterPromise, admissionPromise, onboardingPromise]);
+    const candidateIdentificationPromise = supabase.rpc("rh360_diagnostico_identificacao_candidatos");
+    const [runtime, database, dataCenter, admission, onboarding, candidateIdentification] = await Promise.allSettled([runtimePromise, databasePromise, dataCenterPromise, admissionPromise, onboardingPromise, candidateIdentificationPromise]);
     const collected: SystemCheck[] = [];
     if (runtime.status === "fulfilled") {
       collected.push(...runtime.value.checks);
@@ -80,6 +81,16 @@ export default function SystemHealthPage() {
         detalhe: "Conteúdos versionados, regras por contexto e evidências de ciência ainda não foram preparados.",
         acao: detail?.includes("rh360_diagnostico_onboarding_360") ? "Execute a migração 009 no Supabase." : detail ?? "Revise a migração 009.",
         criticidade: "critica", ordem: 67,
+      });
+    }
+    if (candidateIdentification.status === "fulfilled" && !candidateIdentification.value.error) collected.push(...((candidateIdentification.value.data ?? []) as SystemCheck[]));
+    else {
+      const detail = candidateIdentification.status === "fulfilled" ? candidateIdentification.value.error?.message : String(candidateIdentification.reason);
+      collected.push({
+        chave: "migracao_010_indisponivel", titulo: "Identificação protegida de candidatos indisponível", categoria: "Banco", status: "erro",
+        detalhe: "CPF protegido, filiação materna e nascimento ainda não foram preparados no cadastro de candidaturas.",
+        acao: detail?.includes("rh360_diagnostico_identificacao_candidatos") ? "Execute a migração 010 no Supabase." : detail ?? "Revise a migração 010.",
+        criticidade: "critica", ordem: 68,
       });
     }
     setChecks(collected.sort((a, b) => a.ordem - b.ordem)); setLoading(false);

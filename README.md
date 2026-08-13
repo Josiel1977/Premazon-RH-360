@@ -2,7 +2,7 @@
 
 Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo**, **Recrutamento & Seleção**, **Admissão & Onboarding** e **Treinamento & Desenvolvimento**.
 
-Versão atual: **0.9.0**.
+Versão atual: **0.10.0**.
 
 ## O que já está disponível
 
@@ -24,7 +24,7 @@ Versão atual: **0.9.0**.
 - mapeamento das 15 competências reais, sem notas artificiais para campos vazios;
 - catálogo de cursos, plano anual, custos, frequência, certificados e eficácia;
 - consolidação de necessidades e gaps por setor e competência.
-- Central de RH premium com navegação responsiva nas nove áreas estratégicas;
+- Central de RH premium com navegação responsiva nas dez áreas estratégicas;
 - Universidade Corporativa com cursos, módulos e videoaulas privadas;
 - upload retomável de vídeos, publicação, matrículas e acompanhamento de progresso;
 - reprodução por URL temporária e acesso protegido por perfil e matrícula.
@@ -52,6 +52,11 @@ Versão atual: **0.9.0**.
 - jornada pública limitada aos conteúdos explicitamente liberados no link individual;
 - ciência simples vinculada à versão apresentada, sem alegar assinatura eletrônica;
 - documentos de políticas em bucket privado e cursos reaproveitados da Universidade Corporativa.
+- candidatura pública com CPF validado, filiação materna e nascimento;
+- CPF do candidato persistido somente como hash e quatro dígitos finais;
+- Clima e Engajamento organizado em 18 áreas de trabalho, sem indicadores demonstrativos;
+- Carreira e Sucessão organizado em 11 áreas conectadas ao cadastro, desempenho, PDI e capacitação;
+- portfólio de Projetos de RH com Rumo ao Topo, Campanhas, Reconhecimento, Qualidade de Vida e Segurança.
 
 ## Executar localmente
 
@@ -89,6 +94,7 @@ No SQL Editor do Supabase, execute nesta ordem:
 8. `database/migrations/20260813_007_central_dados_relatorios.sql` — histórico unificado, exportação e relatórios executivos compartilháveis.
 9. `database/migrations/20260813_008_admissao_onboarding.sql` — pré-admissão, documentos privados, checklists e experiência 7/30/60/90.
 10. `database/migrations/20260813_009_onboarding_360_configuravel.sql` — conteúdos versionados, regras por contexto, jornada e evidências de ciência.
+11. `database/migrations/20260813_010_identificacao_candidatos.sql` — CPF protegido, filiação materna e nascimento no cadastro de candidatos.
 
 Depois, em **Authentication > Users**, crie o primeiro usuário. Copie o UUID dele e execute no SQL Editor:
 
@@ -117,12 +123,14 @@ As regras e o desenho técnico do módulo estão em [docs/rumo-ao-topo.md](docs/
 1. Entre no painel e abra **Recrutamento & Seleção**.
 2. Crie uma vaga; o sistema gera um token e um link exclusivo.
 3. Envie o link pelo WhatsApp, e-mail ou copie para outro canal.
-4. O candidato abre o formulário sem login, aceita o aviso de privacidade e anexa um currículo de até 5 MB.
+4. O candidato abre o formulário sem login, informa CPF, filiação materna e nascimento, aceita o aviso de privacidade e anexa um currículo de até 5 MB.
 5. O RH acompanha a candidatura, altera a etapa e abre o currículo por um link temporário.
 6. Fechar a vaga desativa o formulário público imediatamente.
 7. Em **Importar Planilha CSV**, grave a base histórica para liberar análises por departamento, gestor, contratação, desligamento, substituição e custos.
 
 Na Vercel, cadastre as três variáveis acima em **Project Settings > Environment Variables** e faça um novo deploy. A planilha histórica de vagas enviada como referência contém nomes reais; por isso, seus registros não fazem parte do repositório. A arquitetura do módulo está em [docs/recrutamento-selecao.md](docs/recrutamento-selecao.md).
+
+O CPF completo não é salvo na candidatura. A API mantém somente o hash e os quatro dígitos finais para prevenção de duplicidade e conferência mascarada. CPF protegido, filiação e nascimento ficam em uma tabela separada, acessível somente por administrador e RH. Consulte também [docs/clima-carreira-projetos-rh.md](docs/clima-carreira-projetos-rh.md).
 
 ## Admissão & Onboarding
 

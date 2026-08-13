@@ -11,6 +11,9 @@ import {
 function candidaturaValida() {
   const form = new FormData();
   form.set("nome", "Maria da Silva");
+  form.set("cpf", "529.982.247-25");
+  form.set("nome_mae", "Ana da Silva");
+  form.set("data_nascimento", "1990-05-20");
   form.set("email", "Maria@Example.com");
   form.set("telefone", "(92) 99999-0000");
   form.set("cidade", "Manaus");
@@ -27,8 +30,25 @@ test("normaliza e valida os dados públicos da candidatura", () => {
   if (result.ok) {
     assert.equal(result.data.email, "maria@example.com");
     assert.equal(result.data.estado, "AM");
+    assert.equal(result.data.cpf, "52998224725");
+    assert.equal(result.data.nome_mae, "Ana da Silva");
+    assert.equal(result.data.data_nascimento, "1990-05-20");
     assert.equal(result.data.pretensao_salarial, null);
   }
+});
+
+test("rejeita CPF, filiação materna e nascimento inválidos", () => {
+  const cpfInvalido = candidaturaValida();
+  cpfInvalido.set("cpf", "111.111.111-11");
+  assert.equal(validarCandidatura(cpfInvalido).ok, false);
+
+  const semNomeMae = candidaturaValida();
+  semNomeMae.delete("nome_mae");
+  assert.equal(validarCandidatura(semNomeMae).ok, false);
+
+  const menorDeQuatorze = candidaturaValida();
+  menorDeQuatorze.set("data_nascimento", new Date().toISOString().slice(0, 10));
+  assert.equal(validarCandidatura(menorDeQuatorze).ok, false);
 });
 
 test("rejeita honeypot, ausência de consentimento e telefone inválido", () => {

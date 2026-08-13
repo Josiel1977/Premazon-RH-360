@@ -84,6 +84,8 @@ export function generateStaticParams() {
 export default async function ModuleHubPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   if (slug === "admissao-onboarding") redirect("/dashboard/admissao");
+  if (slug === "clima-engajamento") redirect("/dashboard/clima-engajamento#dashboard");
+  if (slug === "carreira-sucessao") redirect("/dashboard/carreira-sucessao#dashboard");
   const definition = modules[slug];
   if (!definition) notFound();
 

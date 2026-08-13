@@ -6,8 +6,8 @@
 RH cria a vaga
   → sistema gera um token público não previsível
   → RH compartilha por WhatsApp, e-mail ou outro canal
-  → candidato preenche sem login e anexa currículo
-  → servidor valida os dados e guarda o arquivo em bucket privado
+  → candidato preenche sem login, informa sua identificação e anexa currículo
+  → servidor valida os dados, protege o CPF e guarda o arquivo em bucket privado
   → candidatura entra em Triagem
   → RH movimenta o candidato pelo pipeline
 ```
@@ -18,6 +18,7 @@ O formulário público mostra apenas os dados necessários da oportunidade. O to
 
 - `rs_vagas`: abertura, contratação, solicitante, SLA, custos, descrição, requisitos e situação do link;
 - `rs_candidaturas`: contato, experiência, consentimento, etapa e metadados do currículo;
+- `rs_candidatos_identificacao`: hash e final do CPF, filiação materna e nascimento, com acesso exclusivo de administrador e RH;
 - `rs_movimentacoes`: histórico das alterações de etapa;
 - `rs_importacoes_historico`: arquivo, hash, validação, rejeições e avisos da base analítica;
 - `rs_historico_processos`: admissões, desligamentos, substituições, SLA e custos reais importados;
@@ -38,7 +39,9 @@ Obtenha a chave em **Supabase > Project Settings > API Keys > Secret keys**. Cad
 
 ## Decisões de LGPD
 
-- CPF não é solicitado na candidatura inicial; deve ser coletado somente quando necessário para admissão;
+- CPF, filiação materna e nascimento são solicitados para identificação conforme a finalidade definida pelo RH;
+- o CPF completo não é persistido: ficam somente hash e quatro dígitos finais;
+- filiação e nascimento ficam em tabela separada e não são liberados para diretoria ou gestores;
 - o consentimento é obrigatório e registra data e hora;
 - currículos não possuem URL pública;
 - a auditoria guarda IDs, etapa e status, sem duplicar nome, e-mail ou telefone;

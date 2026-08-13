@@ -41,7 +41,7 @@ export async function GET() {
       titulo: "Runtime de produção",
       categoria: "Aplicação",
       status: process.version.startsWith("v22.") ? "ok" : "aviso",
-      detalhe: `PremazonRH360 0.9.0 · Node ${process.version}${process.env.VERCEL ? " · Vercel" : " · ambiente local"}`,
+      detalhe: `PremazonRH360 0.10.0 · Node ${process.version}${process.env.VERCEL ? " · Vercel" : " · ambiente local"}`,
       acao: "Mantenha o projeto configurado para Node.js 22.",
       criticidade: "media",
       ordem: 4,

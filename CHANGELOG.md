@@ -1,5 +1,16 @@
 # Histórico de versões
 
+## 0.10.0 — 2026-08-13
+
+- adiciona CPF, nome completo da mãe e data de nascimento ao formulário público de candidatura;
+- valida CPF e idade mínima, mantendo somente hash e quatro dígitos finais do documento;
+- atualiza o aviso de privacidade e restringe a exibição dos dados de identificação ao painel autenticado;
+- organiza Clima e Engajamento nas 18 áreas solicitadas, sem fabricar indicadores;
+- organiza Carreira e Sucessão nas 11 áreas solicitadas, com salvaguardas para talento, potencial e sucessão;
+- cria Projetos de RH com Rumo ao Topo e a seção de projetos estratégicos para Campanhas, Reconhecimento, Qualidade de Vida e Segurança;
+- mantém Campanhas e Reconhecimento conectados ao mesmo módulo de Clima, evitando bases duplicadas;
+- adiciona a migração e o diagnóstico 010 para identificação protegida de candidatos.
+
 ## 0.9.0 — 2026-08-13
 
 - amplia Admissão para um Onboarding 360° configurável sem duplicar a base da versão 0.8;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   assinaturaCurriculoValida,
@@ -110,7 +111,16 @@ export async function POST(request: Request, context: RouteContext) {
     .insert({
       id: candidateId,
       vaga_id: vacancy.id,
-      ...validation.data,
+      nome: validation.data.nome,
+      email: validation.data.email,
+      telefone: validation.data.telefone,
+      cidade: validation.data.cidade,
+      estado: validation.data.estado,
+      linkedin: validation.data.linkedin,
+      escolaridade: validation.data.escolaridade,
+      pretensao_salarial: validation.data.pretensao_salarial,
+      experiencia: validation.data.experiencia,
+      consentimento_lgpd: validation.data.consentimento_lgpd,
       curriculo_path: storagePath,
       curriculo_nome: safeFileName,
       curriculo_tipo: fileValue.type || "application/octet-stream",
@@ -131,6 +141,29 @@ export async function POST(request: Request, context: RouteContext) {
       );
     }
     return NextResponse.json({ error: "Não foi possível concluir a candidatura. Tente novamente." }, { status: 500 });
+  }
+
+  const { error: identificationError } = await supabase
+    .from("rs_candidatos_identificacao")
+    .insert({
+      candidatura_id: candidateId,
+      vaga_id: vacancy.id,
+      cpf_hash: createHash("sha256").update(validation.data.cpf).digest("hex"),
+      cpf_final: validation.data.cpf.slice(-4),
+      nome_mae: validation.data.nome_mae,
+      data_nascimento: validation.data.data_nascimento,
+    });
+
+  if (identificationError) {
+    await supabase.from("rs_candidaturas").delete().eq("id", candidateId);
+    await supabase.storage.from("curriculos-candidatos").remove([storagePath]);
+    if (identificationError.code === "23505") {
+      return NextResponse.json(
+        { error: "Já existe uma candidatura deste CPF para esta vaga. Em caso de dúvida, fale com o RH." },
+        { status: 409 },
+      );
+    }
+    return NextResponse.json({ error: "Não foi possível proteger os dados de identificação. Tente novamente." }, { status: 500 });
   }
 
   return NextResponse.json(

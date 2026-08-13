@@ -1,3 +1,5 @@
+import { isCpfValid, normalizeCpf } from "./admissao";
+
 export const MAX_CURRICULO_BYTES = 5 * 1024 * 1024;
 
 export const CURRICULO_MIME_TYPES = [
@@ -8,6 +10,9 @@ export const CURRICULO_MIME_TYPES = [
 
 export type CandidaturaPublica = {
   nome: string;
+  cpf: string;
+  nome_mae: string;
+  data_nascimento: string;
   email: string;
   telefone: string;
   cidade: string;
@@ -38,6 +43,9 @@ export function isUuid(value: string) {
 
 export function validarCandidatura(formData: FormData): ValidationResult {
   const nome = limit(textValue(formData, "nome"), 160);
+  const cpf = normalizeCpf(textValue(formData, "cpf"));
+  const nomeMae = limit(textValue(formData, "nome_mae"), 180);
+  const dataNascimento = textValue(formData, "data_nascimento");
   const email = limit(textValue(formData, "email").toLowerCase(), 254);
   const telefone = limit(textValue(formData, "telefone"), 30);
   const cidade = limit(textValue(formData, "cidade"), 100);
@@ -55,6 +63,13 @@ export function validarCandidatura(formData: FormData): ValidationResult {
     return { ok: false, error: "Não foi possível enviar a candidatura." };
   }
   if (nome.length < 3) return { ok: false, error: "Informe seu nome completo." };
+  if (!isCpfValid(cpf)) return { ok: false, error: "Informe um CPF válido." };
+  if (nomeMae.length < 3) return { ok: false, error: "Informe o nome completo da mãe." };
+  const birthDate = new Date(`${dataNascimento}T12:00:00Z`);
+  const age = Math.floor((Date.now() - birthDate.getTime()) / 31_557_600_000);
+  if (!dataNascimento || !Number.isFinite(age) || age < 14 || age > 100) {
+    return { ok: false, error: "Informe uma data de nascimento válida." };
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, error: "Informe um e-mail válido." };
   }
@@ -88,6 +103,9 @@ export function validarCandidatura(formData: FormData): ValidationResult {
     ok: true,
     data: {
       nome,
+      cpf,
+      nome_mae: nomeMae,
+      data_nascimento: dataNascimento,
       email,
       telefone,
       cidade,
