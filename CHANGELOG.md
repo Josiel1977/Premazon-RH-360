@@ -1,5 +1,17 @@
 # Histórico de versões
 
+## 0.9.0 — 2026-08-13
+
+- amplia Admissão para um Onboarding 360° configurável sem duplicar a base da versão 0.8;
+- cria catálogo por área, versões controladas, vigências e documentos privados;
+- reaproveita cursos e vídeos da Universidade Corporativa em vez de manter um segundo motor audiovisual;
+- aplica regras aprovadas por cargo, setor e filial, com precedência explícita sobre a regra global;
+- inclui jornada por link individual somente depois do envio da pré-admissão e apenas para conteúdo marcado como público;
+- registra ciência simples vinculada à versão, sem IP e sem alegar assinatura eletrônica qualificada ou avançada;
+- bloqueia a conclusão do processo enquanto tarefas ou conteúdos obrigatórios estiverem pendentes;
+- adiciona painel de Conteúdos e Regras, associação organizacional na abertura da admissão e diagnóstico da migração 009;
+- mantém relatos do canal de denúncias fora do onboarding e adia etilometria até validação jurídica, de proteção de dados e do SESMT.
+
 ## 0.8.0 — 2026-08-13
 
 - adiciona a jornada completa de Admissão e Onboarding;

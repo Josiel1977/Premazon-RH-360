@@ -35,7 +35,8 @@ export default function SystemHealthPage() {
     const databasePromise = supabase.rpc("rh360_diagnostico_sistema");
     const dataCenterPromise = supabase.rpc("rh360_diagnostico_central_dados");
     const admissionPromise = supabase.rpc("rh360_diagnostico_admissao");
-    const [runtime, database, dataCenter, admission] = await Promise.allSettled([runtimePromise, databasePromise, dataCenterPromise, admissionPromise]);
+    const onboardingPromise = supabase.rpc("rh360_diagnostico_onboarding_360");
+    const [runtime, database, dataCenter, admission, onboarding] = await Promise.allSettled([runtimePromise, databasePromise, dataCenterPromise, admissionPromise, onboardingPromise]);
     const collected: SystemCheck[] = [];
     if (runtime.status === "fulfilled") {
       collected.push(...runtime.value.checks);
@@ -69,6 +70,16 @@ export default function SystemHealthPage() {
         detalhe: "Processos, documentos privados e checklists admissionais ainda não foram preparados.",
         acao: detail?.includes("rh360_diagnostico_admissao") ? "Execute a migração 008 no Supabase." : detail ?? "Revise a migração 008.",
         criticidade: "critica", ordem: 66,
+      });
+    }
+    if (onboarding.status === "fulfilled" && !onboarding.value.error) collected.push(...((onboarding.value.data ?? []) as SystemCheck[]));
+    else {
+      const detail = onboarding.status === "fulfilled" ? onboarding.value.error?.message : String(onboarding.reason);
+      collected.push({
+        chave: "migracao_009_indisponivel", titulo: "Onboarding 360° configurável indisponível", categoria: "Banco", status: "erro",
+        detalhe: "Conteúdos versionados, regras por contexto e evidências de ciência ainda não foram preparados.",
+        acao: detail?.includes("rh360_diagnostico_onboarding_360") ? "Execute a migração 009 no Supabase." : detail ?? "Revise a migração 009.",
+        criticidade: "critica", ordem: 67,
       });
     }
     setChecks(collected.sort((a, b) => a.ordem - b.ordem)); setLoading(false);

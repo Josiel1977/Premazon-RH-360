@@ -29,14 +29,34 @@ export async function GET(_request: Request, context: RouteContext) {
   const process = await findProcess(token);
   if (!process) return NextResponse.json({ error: "Este link não está disponível ou expirou." }, { status: 404 });
   const supabase = createAdminClient()!;
-  const [{ data: documents }, { data: preAdmission }] = await Promise.all([
+  const [{ data: documents }, { data: preAdmission }, { data: assignments }] = await Promise.all([
     supabase.from("adm_documentos").select("tipo_documento,status").eq("processo_id", process.id),
     supabase.from("adm_dados_preadmissao").select("id").eq("processo_id", process.id).maybeSingle(),
+    supabase.from("adm_atribuicoes_conteudo").select("id,conteudo_id,versao_id,area,status,progresso_percentual,obrigatoria,ordem").eq("processo_id", process.id).order("ordem"),
   ]);
+  const assignmentRows = assignments ?? [];
+  const contentIds = [...new Set(assignmentRows.map((item) => item.conteudo_id))];
+  const versionIds = [...new Set(assignmentRows.map((item) => item.versao_id))];
+  const [{ data: contents }, { data: versions }] = await Promise.all([
+    contentIds.length ? supabase.from("adm_conteudos_onboarding").select("id,titulo,descricao,tipo,nivel_acesso,exige_ciencia").in("id", contentIds) : Promise.resolve({ data: [] }),
+    versionIds.length ? supabase.from("adm_conteudo_versoes").select("id,versao,status").in("id", versionIds) : Promise.resolve({ data: [] }),
+  ]);
+  const contentMap = new Map((contents ?? []).map((item) => [item.id, item]));
+  const versionMap = new Map((versions ?? []).map((item) => [item.id, item]));
+  const journey = preAdmission ? assignmentRows.flatMap((assignment) => {
+    const content = contentMap.get(assignment.conteudo_id); const version = versionMap.get(assignment.versao_id);
+    if (!content || !version || content.nivel_acesso !== "publico_link" || version.status !== "publicado") return [];
+    return [{
+      id: assignment.id, area: assignment.area, titulo: content.titulo, descricao: content.descricao,
+      tipo: content.tipo, versao: version.versao, exige_ciencia: content.exige_ciencia,
+      obrigatoria: assignment.obrigatoria, status: assignment.status,
+      progresso_percentual: Number(assignment.progresso_percentual),
+    }];
+  }) : [];
   return NextResponse.json({ processo: {
     nome_candidato: process.nome_candidato, cargo: process.cargo, departamento: process.departamento,
     data_admissao_prevista: process.data_admissao_prevista, etapa: process.etapa,
-    enviado: Boolean(preAdmission), documentos: documents ?? [],
+    enviado: Boolean(preAdmission), documentos: documents ?? [], jornada: journey,
   } });
 }
 

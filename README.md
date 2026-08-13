@@ -2,7 +2,7 @@
 
 Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo**, **Recrutamento & Seleção**, **Admissão & Onboarding** e **Treinamento & Desenvolvimento**.
 
-Versão atual: **0.8.0**.
+Versão atual: **0.9.0**.
 
 ## O que já está disponível
 
@@ -47,6 +47,11 @@ Versão atual: **0.8.0**.
 - checklist automático de RH, DP, Qualidade, SESMT, gestor e TI;
 - acompanhamento da experiência nos marcos de 7, 30, 60 e 90 dias;
 - conclusão controlada que cria o cadastro mestre somente após as tarefas obrigatórias.
+- catálogo de onboarding com conteúdos versionados de RH, DP, Qualidade, SESMT, gestor e TI;
+- regras aprovadas por cargo, setor e filial, com precedência sobre a regra global;
+- jornada pública limitada aos conteúdos explicitamente liberados no link individual;
+- ciência simples vinculada à versão apresentada, sem alegar assinatura eletrônica;
+- documentos de políticas em bucket privado e cursos reaproveitados da Universidade Corporativa.
 
 ## Executar localmente
 
@@ -83,6 +88,7 @@ No SQL Editor do Supabase, execute nesta ordem:
 7. `database/migrations/20260813_006_fundacao_colaborador_360.sql` — Saúde do Sistema, Colaborador 360 e Central de Pendências.
 8. `database/migrations/20260813_007_central_dados_relatorios.sql` — histórico unificado, exportação e relatórios executivos compartilháveis.
 9. `database/migrations/20260813_008_admissao_onboarding.sql` — pré-admissão, documentos privados, checklists e experiência 7/30/60/90.
+10. `database/migrations/20260813_009_onboarding_360_configuravel.sql` — conteúdos versionados, regras por contexto, jornada e evidências de ciência.
 
 Depois, em **Authentication > Users**, crie o primeiro usuário. Copie o UUID dele e execute no SQL Editor:
 
@@ -129,8 +135,9 @@ Na Vercel, cadastre as três variáveis acima em **Project Settings > Environmen
 7. O RH abre os arquivos por URL temporária, aprova ou informa a correção necessária.
 8. As áreas concluem suas tarefas e o gestor registra os acompanhamentos de 7, 30, 60 e 90 dias.
 9. Somente administrador ou RH conclui a admissão; tarefas obrigatórias pendentes bloqueiam essa ação.
+10. Execute a migração 009 e use **Conteúdos e regras** para publicar versões e aprovar aplicações por cargo, setor ou filial.
 
-O formulário público não cria conta e não possui acesso direto ao banco. A API de servidor valida o token, os dados, o tipo real do arquivo e grava documentos no bucket privado `admissao-documentos`. Consulte [docs/admissao-onboarding.md](docs/admissao-onboarding.md).
+O formulário público não cria conta e não possui acesso direto ao banco. A API de servidor valida o token, os dados, o tipo real do arquivo e grava documentos no bucket privado `admissao-documentos`. Conteúdos públicos são limitados ao próprio processo e políticas permanecem no bucket privado `onboarding-conteudos`. Consulte [docs/admissao-onboarding.md](docs/admissao-onboarding.md) e [docs/onboarding-360-configuravel.md](docs/onboarding-360-configuravel.md).
 
 ## Treinamento & Desenvolvimento
 
