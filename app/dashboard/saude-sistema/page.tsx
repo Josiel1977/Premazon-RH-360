@@ -34,7 +34,8 @@ export default function SystemHealthPage() {
     });
     const databasePromise = supabase.rpc("rh360_diagnostico_sistema");
     const dataCenterPromise = supabase.rpc("rh360_diagnostico_central_dados");
-    const [runtime, database, dataCenter] = await Promise.allSettled([runtimePromise, databasePromise, dataCenterPromise]);
+    const admissionPromise = supabase.rpc("rh360_diagnostico_admissao");
+    const [runtime, database, dataCenter, admission] = await Promise.allSettled([runtimePromise, databasePromise, dataCenterPromise, admissionPromise]);
     const collected: SystemCheck[] = [];
     if (runtime.status === "fulfilled") {
       collected.push(...runtime.value.checks);
@@ -58,6 +59,16 @@ export default function SystemHealthPage() {
         detalhe: "O histórico unificado e os relatórios compartilháveis ainda não foram preparados.",
         acao: detail?.includes("rh360_diagnostico_central_dados") ? "Execute a migração 007 no Supabase." : detail ?? "Revise a migração 007.",
         criticidade: "critica", ordem: 65,
+      });
+    }
+    if (admission.status === "fulfilled" && !admission.value.error) collected.push(...((admission.value.data ?? []) as SystemCheck[]));
+    else {
+      const detail = admission.status === "fulfilled" ? admission.value.error?.message : String(admission.reason);
+      collected.push({
+        chave: "migracao_008_indisponivel", titulo: "Admissão e Onboarding indisponível", categoria: "Banco", status: "erro",
+        detalhe: "Processos, documentos privados e checklists admissionais ainda não foram preparados.",
+        acao: detail?.includes("rh360_diagnostico_admissao") ? "Execute a migração 008 no Supabase." : detail ?? "Revise a migração 008.",
+        criticidade: "critica", ordem: 66,
       });
     }
     setChecks(collected.sort((a, b) => a.ordem - b.ordem)); setLoading(false);

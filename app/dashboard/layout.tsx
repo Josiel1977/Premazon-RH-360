@@ -55,7 +55,7 @@ const menuGroups: MenuGroup[] = [
   {
     name: "Admissão e Onboarding",
     icon: ClipboardCheck,
-    links: [{ name: "Visão geral", href: "/dashboard/modulos/admissao-onboarding", icon: LayoutDashboard }],
+    links: [{ name: "Jornada admissional", href: "/dashboard/admissao", icon: UserCheck, badge: "NOVO" }],
   },
   {
     name: "Treinamento e Desenvolvimento",

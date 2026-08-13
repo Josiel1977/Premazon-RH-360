@@ -1,8 +1,8 @@
 # Premazon RH 360
 
-Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo**, **Recrutamento & Seleção** e **Treinamento & Desenvolvimento**.
+Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo**, **Recrutamento & Seleção**, **Admissão & Onboarding** e **Treinamento & Desenvolvimento**.
 
-Versão atual: **0.7.0**.
+Versão atual: **0.8.0**.
 
 ## O que já está disponível
 
@@ -40,6 +40,13 @@ Versão atual: **0.7.0**.
 - fluxo explícito de carga inicial e atualizações incrementais, sem substituir a base já gravada;
 - exportação CSV compatível com Excel e proteção contra fórmulas maliciosas em células;
 - links executivos temporários, revogáveis e auditáveis, contendo somente indicadores agregados.
+- Admissão e Onboarding com processo originado no R&S ou cadastro manual;
+- link individual de pré-admissão para compartilhamento por WhatsApp ou e-mail;
+- documentos privados, conferência do RH e substituição segura de arquivos rejeitados;
+- CPF persistido somente como hash e quatro dígitos finais;
+- checklist automático de RH, DP, Qualidade, SESMT, gestor e TI;
+- acompanhamento da experiência nos marcos de 7, 30, 60 e 90 dias;
+- conclusão controlada que cria o cadastro mestre somente após as tarefas obrigatórias.
 
 ## Executar localmente
 
@@ -75,6 +82,7 @@ No SQL Editor do Supabase, execute nesta ordem:
 6. `database/migrations/20260813_005_programas_estrategicos.sql` — PDI individual e histórico analítico de Recrutamento & Seleção.
 7. `database/migrations/20260813_006_fundacao_colaborador_360.sql` — Saúde do Sistema, Colaborador 360 e Central de Pendências.
 8. `database/migrations/20260813_007_central_dados_relatorios.sql` — histórico unificado, exportação e relatórios executivos compartilháveis.
+9. `database/migrations/20260813_008_admissao_onboarding.sql` — pré-admissão, documentos privados, checklists e experiência 7/30/60/90.
 
 Depois, em **Authentication > Users**, crie o primeiro usuário. Copie o UUID dele e execute no SQL Editor:
 
@@ -109,6 +117,20 @@ As regras e o desenho técnico do módulo estão em [docs/rumo-ao-topo.md](docs/
 7. Em **Importar Planilha CSV**, grave a base histórica para liberar análises por departamento, gestor, contratação, desligamento, substituição e custos.
 
 Na Vercel, cadastre as três variáveis acima em **Project Settings > Environment Variables** e faça um novo deploy. A planilha histórica de vagas enviada como referência contém nomes reais; por isso, seus registros não fazem parte do repositório. A arquitetura do módulo está em [docs/recrutamento-selecao.md](docs/recrutamento-selecao.md).
+
+## Admissão & Onboarding
+
+1. Execute `database/migrations/20260813_008_admissao_onboarding.sql` depois da migração 007.
+2. Abra **Admissão e Onboarding > Jornada admissional**.
+3. Inicie o processo a partir de um candidato em Proposta/Admissão ou faça um cadastro manual.
+4. Selecione o gestor e a data prevista; o sistema cria o checklist completo por área.
+5. Copie o link seguro ou envie-o ao candidato por WhatsApp/e-mail.
+6. O candidato preenche os dados e envia cada documento em PDF, JPG ou PNG de até 3 MB.
+7. O RH abre os arquivos por URL temporária, aprova ou informa a correção necessária.
+8. As áreas concluem suas tarefas e o gestor registra os acompanhamentos de 7, 30, 60 e 90 dias.
+9. Somente administrador ou RH conclui a admissão; tarefas obrigatórias pendentes bloqueiam essa ação.
+
+O formulário público não cria conta e não possui acesso direto ao banco. A API de servidor valida o token, os dados, o tipo real do arquivo e grava documentos no bucket privado `admissao-documentos`. Consulte [docs/admissao-onboarding.md](docs/admissao-onboarding.md).
 
 ## Treinamento & Desenvolvimento
 

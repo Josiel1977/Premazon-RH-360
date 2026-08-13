@@ -1,5 +1,18 @@
 # Histórico de versões
 
+## 0.8.0 — 2026-08-13
+
+- adiciona a jornada completa de Admissão e Onboarding;
+- cria formulário público de pré-admissão por token, sem conta do candidato;
+- envia documentos individualmente e os guarda em bucket privado;
+- valida CPF, formato, tamanho e assinatura binária dos arquivos;
+- mantém CPF completo fora do banco, persistindo hash e quatro dígitos finais;
+- gera checklists automáticos para RH, DP, Qualidade, SESMT, gestor e TI;
+- acompanha experiência nos marcos de 7, 30, 60 e 90 dias;
+- restringe o gestor aos processos vinculados ao próprio cadastro;
+- integra candidato aprovado, conclusão da admissão e cadastro mestre;
+- amplia o diagnóstico da Saúde do Sistema para a migração 008.
+
 ## 0.7.0 — 2026-08-13
 
 - Central de Dados com histórico unificado das importações de Rumo ao Topo, R&S e T&D;

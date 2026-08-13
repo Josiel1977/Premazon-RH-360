@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   ArrowRight,
   BriefcaseBusiness,
@@ -83,6 +83,7 @@ export function generateStaticParams() {
 
 export default async function ModuleHubPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  if (slug === "admissao-onboarding") redirect("/dashboard/admissao");
   const definition = modules[slug];
   if (!definition) notFound();
 
