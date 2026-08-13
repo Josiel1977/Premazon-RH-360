@@ -2,7 +2,7 @@
 
 Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo**, **Recrutamento & Seleção**, **Admissão & Onboarding** e **Treinamento & Desenvolvimento**.
 
-Versão atual: **0.11.0**.
+Versão atual: **0.12.0**.
 
 ## O que já está disponível
 
@@ -95,6 +95,7 @@ No SQL Editor do Supabase, execute nesta ordem:
 9. `database/migrations/20260813_008_admissao_onboarding.sql` — pré-admissão, documentos privados, checklists e experiência 7/30/60/90.
 10. `database/migrations/20260813_009_onboarding_360_configuravel.sql` — conteúdos versionados, regras por contexto, jornada e evidências de ciência.
 11. `database/migrations/20260813_010_identificacao_candidatos.sql` — CPF protegido, filiação materna e nascimento no cadastro de candidatos.
+12. `database/migrations/20260813_011_perfil_comportamental_colaborador.sql` — convites individuais, respostas e resultados versionados do questionário de autopercepção.
 
 Depois, em **Authentication > Users**, crie o primeiro usuário. Copie o UUID dele e execute no SQL Editor:
 
@@ -154,10 +155,12 @@ O formulário público não cria conta e não possui acesso direto ao banco. A A
 3. Importe primeiro a LNT e confira a prévia antes de gravar.
 4. Importe a avaliação de desempenho; respostas sem nota serão rejeitadas com aviso em vez de receber média artificial.
 5. Navegue pelas 13 etapas do ciclo: Dashboard, Avaliação de Desempenho, Perfil Comportamental, Matriz de Competências, Análise de Lacunas, LNT, PDI, Catálogo, Custos e Orçamento, Cronograma, Custos por Setor, Histórico e Indicadores.
-6. Priorize as necessidades, mantenha o catálogo e distribua as ações no plano anual.
-7. Depois da execução, registre participantes, frequência, certificado e avaliação de eficácia.
+6. Em **Perfil Comportamental**, selecione um colaborador, gere o link individual e envie por WhatsApp ou e-mail.
+7. O colaborador responde 24 perguntas sem criar senha; a API calcula D/I/S/C no servidor e grava o instrumento, o algoritmo e o aviso apresentados.
+8. Priorize as necessidades, mantenha o catálogo e distribua as ações no plano anual.
+9. Depois da execução, registre participantes, frequência, certificado e avaliação de eficácia.
 
-O Perfil Comportamental é uma leitura das competências já avaliadas, não um teste psicológico ou diagnóstico de personalidade. Custos por Setor respeita a alocação informada no campo público-alvo/setor e não faz rateios automáticos. As planilhas de origem contêm dados pessoais e não fazem parte do repositório. Como elas não possuem matrícula, o vínculo com o cadastro oficial permanece pendente até conferência do RH. Consulte [docs/treinamento-desenvolvimento.md](docs/treinamento-desenvolvimento.md).
+O Perfil Comportamental possui um questionário de autopercepção D/I/S/C fornecido pelo RH e mantém separada a leitura das competências importadas. Nenhuma das duas visões é teste psicológico, diagnóstico, prova de aptidão ou decisão automática. Custos por Setor respeita a alocação informada no campo público-alvo/setor e não faz rateios automáticos. As planilhas de origem contêm dados pessoais e não fazem parte do repositório. Como elas não possuem matrícula, o vínculo com o cadastro oficial permanece pendente até conferência do RH. Consulte [docs/treinamento-desenvolvimento.md](docs/treinamento-desenvolvimento.md) e [docs/perfil-comportamental.md](docs/perfil-comportamental.md).
 
 ## Universidade Corporativa
 

@@ -1,5 +1,18 @@
 # Histórico de versões
 
+## 0.12.0 — 2026-08-13
+
+- transforma o HTML fornecido pelo RH em questionário responsivo de autopercepção D/I/S/C;
+- mantém as 24 perguntas, mas embaralha a ordem das alternativas por convite e calcula a pontuação somente no servidor;
+- cria link individual, temporário, revogável e de resposta única para cada colaborador;
+- permite compartilhar o convite por WhatsApp ou e-mail e acompanhar pendência, expiração e conclusão;
+- persiste respostas, pontuações, percentuais, dimensões predominantes, duração e versões do instrumento, algoritmo e aviso;
+- resolve empates sem escolher arbitrariamente um perfil e normaliza os percentuais para totalizar 100%;
+- separa o resultado respondido pelo colaborador da leitura complementar da avaliação de desempenho;
+- protege convites e resultados com RLS e restringe a administração aos perfis administrador e RH;
+- adiciona a migração e o diagnóstico 011;
+- explicita que o questionário não é teste psicológico, diagnóstico, prova de aptidão ou decisão automática.
+
 ## 0.11.0 — 2026-08-13
 
 - reorganiza Treinamento e Desenvolvimento em 13 etapas, do diagnóstico aos indicadores;

@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Activity, BarChart3, BookOpenCheck, Boxes, Brain, Building2, CalendarDays,
-  CheckCircle2, ChevronDown, ClipboardCheck, ClipboardList, FileSpreadsheet,
-  GraduationCap, Grid3X3, History, Loader2, Plus, Printer, Save, Search,
-  Target, TrendingUp, Upload, UserRound, Users, WalletCards, X,
+  Activity, Ban, BarChart3, BookOpenCheck, Boxes, Brain, Building2, CalendarDays,
+  CheckCircle2, ChevronDown, ClipboardCheck, ClipboardList, Copy, ExternalLink,
+  FileSpreadsheet, GraduationCap, Grid3X3, History, Loader2, Mail, MessageCircle,
+  Plus, Printer, Save, Search, Target, TrendingUp, Upload, UserRound, Users,
+  WalletCards, X,
 } from "lucide-react";
 import {
   Bar, BarChart, CartesianGrid, Cell, PolarAngleAxis, PolarGrid, Radar,
@@ -16,6 +17,7 @@ import { MetricCard, MiniBarList, Pill, ProgramPanel, SectionTitle } from "@/app
 import { supabase } from "@/lib/supabase";
 import { readXlsxRows } from "@/lib/xlsx-browser";
 import { estimatedPotential, nineBoxPosition, performanceBand } from "@/lib/td-analytics";
+import { DISC_INSTRUMENT_VERSION, DISC_PROFILES, type DiscDimension } from "@/lib/perfil-comportamental";
 import {
   parseLntRows, parsePerformanceRows, TD_COMPETENCIES, type TdImportType,
   type TdLntRecord, type TdParseResult, type TdPerformanceRecord,
@@ -52,6 +54,16 @@ type ParticipationRecord = {
 type PdiRecord = {
   id: string; colaborador_nome_importado: string; objetivo: string; status: string;
   data_inicio: string; data_limite: string | null; td_pdi_acoes?: { id: string; descricao: string; status: string }[];
+};
+type CollaboratorRecord = { id: string; nome: string; matricula: string | null; email: string | null; status: string };
+type ProfileInviteRecord = {
+  id: string; colaborador_id: string; public_token: string; instrumento_versao: string; finalidade: string;
+  status: string; expira_em: string; criado_em: string; concluido_em: string | null;
+};
+type ProfileResultRecord = {
+  id: string; convite_id: string; colaborador_id: string; instrumento_versao: string; algoritmo_versao: string;
+  percentuais: Record<DiscDimension, number>; dimensoes_predominantes: DiscDimension[];
+  dimensao_secundaria: DiscDimension | null; perfil_combinado: boolean; concluido_em: string;
 };
 
 const inputClass = "mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-blue-100";
@@ -101,6 +113,11 @@ export default function TreinamentoDesenvolvimentoPage() {
   const [trainings, setTrainings] = useState<TrainingRecord[]>([]);
   const [participations, setParticipations] = useState<ParticipationRecord[]>([]);
   const [pdis, setPdis] = useState<PdiRecord[]>([]);
+  const [collaborators, setCollaborators] = useState<CollaboratorRecord[]>([]);
+  const [profileInvites, setProfileInvites] = useState<ProfileInviteRecord[]>([]);
+  const [profileResults, setProfileResults] = useState<ProfileResultRecord[]>([]);
+  const [profileReady, setProfileReady] = useState(true);
+  const [generatedProfileLink, setGeneratedProfileLink] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -116,13 +133,16 @@ export default function TreinamentoDesenvolvimentoPage() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [needsResult, signalsResult, coursesResult, trainingsResult, participationResult, pdiResult] = await Promise.all([
+    const [needsResult, signalsResult, coursesResult, trainingsResult, participationResult, pdiResult, collaboratorResult, profileInviteResult, profileResult] = await Promise.all([
       supabase.from("td_lnt_necessidades").select("id,colaborador_nome_importado,gestor_importado,setor_importado,cargo_importado,necessidades_tecnicas,temas_comportamentais,treinamento_sugerido,prioridade,status,vinculo_status").order("criado_em", { ascending: false }).limit(1000),
       supabase.from("td_avaliacoes_sinais").select("id,colaborador_nome_importado,gestor_importado,setor_importado,cargo_importado,media_geral,competencias,pontos_fortes,pontos_desenvolver").order("criado_em", { ascending: false }).limit(1000),
       supabase.from("td_cursos").select("id,nome,categoria,competencia_chave,modalidade,carga_horaria,validade_meses,obrigatorio").eq("ativo", true).order("nome"),
       supabase.from("td_treinamentos").select("id,curso_id,titulo,categoria,modalidade,carga_horaria,data_inicio,data_fim,fornecedor,instrutor,publico_alvo,custo_planejado,custo_real,status").order("data_inicio"),
       supabase.from("td_participacoes").select("id,treinamento_id,colaborador_nome_importado,status,frequencia_percentual,nota").limit(2000),
       supabase.from("td_pdis").select("id,colaborador_nome_importado,objetivo,status,data_inicio,data_limite,td_pdi_acoes(id,descricao,status)").order("criado_em", { ascending: false }).limit(500),
+      supabase.from("colaboradores_v2").select("id,nome,matricula,email,status").eq("status", "ativo").order("nome").limit(2000),
+      supabase.from("td_perfil_convites").select("id,colaborador_id,public_token,instrumento_versao,finalidade,status,expira_em,criado_em,concluido_em").order("criado_em", { ascending: false }).limit(1000),
+      supabase.from("td_perfil_resultados").select("id,convite_id,colaborador_id,instrumento_versao,algoritmo_versao,percentuais,dimensoes_predominantes,dimensao_secundaria,perfil_combinado,concluido_em").order("concluido_em", { ascending: false }).limit(1000),
     ]);
     const coreError = [needsResult.error, signalsResult.error, coursesResult.error, trainingsResult.error, participationResult.error].find(Boolean);
     if (coreError) setMessage({ type: "error", text: coreError.message.includes("td_") ? "Prepare o módulo executando as migrações 003 e 005 no Supabase." : `Não foi possível carregar T&D: ${coreError.message}` });
@@ -134,6 +154,16 @@ export default function TreinamentoDesenvolvimentoPage() {
       setParticipations((participationResult.data ?? []).map((item) => ({ ...item, frequencia_percentual: item.frequencia_percentual == null ? null : Number(item.frequencia_percentual), nota: item.nota == null ? null : Number(item.nota) })) as ParticipationRecord[]);
     }
     if (!pdiResult.error) setPdis((pdiResult.data ?? []) as PdiRecord[]);
+    if (!collaboratorResult.error) setCollaborators((collaboratorResult.data ?? []) as CollaboratorRecord[]);
+    const profileError = profileInviteResult.error ?? profileResult.error;
+    setProfileReady(!profileError);
+    if (!profileError) {
+      setProfileInvites((profileInviteResult.data ?? []) as ProfileInviteRecord[]);
+      setProfileResults((profileResult.data ?? []).map((item) => ({
+        ...item,
+        percentuais: Object.fromEntries(Object.entries(item.percentuais ?? {}).map(([key, value]) => [key, Number(value)])) as Record<DiscDimension, number>,
+      })) as ProfileResultRecord[]);
+    }
     setLoading(false);
   }, []);
 
@@ -243,6 +273,41 @@ export default function TreinamentoDesenvolvimentoPage() {
     if (error) setMessage({ type: "error", text: error.message }); else { setShowCourseForm(false); setMessage({ type: "success", text: "Tipo de treinamento cadastrado." }); await loadData(); } setSaving(false);
   }
 
+  async function createProfileInvitation(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setSaving(true); setMessage(null); setGeneratedProfileLink("");
+    const form = new FormData(event.currentTarget);
+    const collaboratorId = String(form.get("colaborador_id") ?? "");
+    const expirationDate = String(form.get("expira_em") ?? "");
+    const expiration = new Date(`${expirationDate}T23:59:59-03:00`);
+    if (!collaboratorId || !expirationDate || !Number.isFinite(expiration.getTime())) {
+      setMessage({ type: "error", text: "Selecione o colaborador e uma data de validade." }); setSaving(false); return;
+    }
+    const { data, error } = await supabase.from("td_perfil_convites").insert({
+      colaborador_id: collaboratorId,
+      instrumento_versao: DISC_INSTRUMENT_VERSION,
+      finalidade: "Autoconhecimento e planejamento de desenvolvimento profissional",
+      expira_em: expiration.toISOString(),
+      status: "pendente",
+    }).select("public_token").single();
+    if (error) {
+      setMessage({ type: "error", text: error.message.includes("td_perfil_convites") ? "Execute a migração 011 antes de gerar o convite." : error.message });
+    } else {
+      const link = `${window.location.origin}/perfil/${data.public_token}`;
+      setGeneratedProfileLink(link);
+      setMessage({ type: "success", text: "Link individual criado. Envie-o somente ao colaborador selecionado." });
+      await loadData();
+    }
+    setSaving(false);
+  }
+
+  async function revokeProfileInvitation(id: string) {
+    setSaving(true); setMessage(null);
+    const { error } = await supabase.from("td_perfil_convites").update({ status: "revogado", revogado_em: new Date().toISOString() }).eq("id", id).eq("status", "pendente");
+    if (error) setMessage({ type: "error", text: error.message });
+    else { setMessage({ type: "success", text: "Convite revogado. O link deixou de aceitar respostas." }); await loadData(); }
+    setSaving(false);
+  }
+
   const toolbar = <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-center">
     <div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar colaborador, gestor ou cargo" className="w-full rounded-xl border border-slate-200 py-2 pl-9 pr-3 text-xs outline-none focus:border-primary" /></div>
     <div className="relative sm:w-56"><select value={sector} onChange={(event) => setSector(event.target.value)} className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 pr-8 text-xs font-bold text-slate-600 outline-none"><option value="todos">Todos os setores</option>{sectors.map((item) => <option key={item}>{item}</option>)}</select><ChevronDown className="pointer-events-none absolute right-3 top-2.5 h-4 w-4 text-slate-400" /></div>
@@ -257,7 +322,7 @@ export default function TreinamentoDesenvolvimentoPage() {
           {["avaliacao", "perfil", "matriz", "lacunas", "lnt", "pdi", "ninebox"].includes(view) && toolbar}
           {view === "dashboard" && <DashboardView needs={openNeeds} signals={signals} trainings={trainings} investment={plannedInvestment} gaps={gapRanking} sectorNeeds={sectorNeeds} distribution={performanceDistribution} />}
           {view === "avaliacao" && <EmployeeView signals={filteredSignals} selectedId={effectiveSignalId} onSelect={setSelectedSignalId} selected={selectedSignal} radar={selectedRadar} gaps={selectedGaps} needs={needs} />}
-          {view === "perfil" && <BehavioralProfileView signals={filteredSignals} selectedId={effectiveSignalId} onSelect={setSelectedSignalId} selected={selectedSignal} />}
+          {view === "perfil" && <BehavioralProfileView signals={filteredSignals} selectedId={effectiveSignalId} onSelect={setSelectedSignalId} selected={selectedSignal} collaborators={collaborators} invites={profileInvites} results={profileResults} ready={profileReady} generatedLink={generatedProfileLink} saving={saving} onCreateInvitation={createProfileInvitation} onRevokeInvitation={revokeProfileInvitation} />}
           {view === "matriz" && <MatrixView signals={filteredSignals} />}
           {view === "lacunas" && <GapAnalysisView signals={filteredSignals} gaps={filteredGapRanking} sectorNeeds={filteredSectorNeeds} />}
           {view === "lnt" && <LntView needs={filteredNeeds} onUpdate={updateNeed} />}
@@ -297,7 +362,14 @@ function EmployeeView({ signals, selectedId, onSelect, selected, radar, gaps, ne
   </div>;
 }
 
-function BehavioralProfileView({ signals, selectedId, onSelect, selected }: { signals: SignalRecord[]; selectedId: string; onSelect: (id: string) => void; selected: SignalRecord | null }) {
+function BehavioralProfileView({ signals, selectedId, onSelect, selected, collaborators, invites, results, ready, generatedLink, saving, onCreateInvitation, onRevokeInvitation }: {
+  signals: SignalRecord[]; selectedId: string; onSelect: (id: string) => void; selected: SignalRecord | null;
+  collaborators: CollaboratorRecord[]; invites: ProfileInviteRecord[]; results: ProfileResultRecord[];
+  ready: boolean; generatedLink: string; saving: boolean;
+  onCreateInvitation: (event: React.FormEvent<HTMLFormElement>) => void;
+  onRevokeInvitation: (id: string) => Promise<void>;
+}) {
+  const [referenceTime] = useState(() => Date.now());
   const behavioralKeys = new Set(["comunicacao", "assertividade_seguranca", "influencia", "lideranca", "comprometimento", "equilibrio_emocional", "desenvolvimento_continuo", "resiliencia", "etica", "trabalho_equipe"]);
   const scores: { name: string; nota: number }[] = selected ? TD_COMPETENCIES
     .filter((item) => behavioralKeys.has(item.key))
@@ -307,10 +379,27 @@ function BehavioralProfileView({ signals, selectedId, onSelect, selected }: { si
     }) : [];
   const strongest = [...scores].sort((a, b) => b.nota - a.nota).slice(0, 3);
   const development = [...scores].sort((a, b) => a.nota - b.nota).slice(0, 3);
+  const collaboratorMap = new Map(collaborators.map((item) => [item.id, item]));
+  const resultMap = new Map(results.map((item) => [item.convite_id, item]));
+  const latestResult = results[0] ?? null;
+  const today = new Date(referenceTime).toISOString().slice(0, 10);
+  const expirationDefault = new Date(referenceTime + 7 * 86_400_000).toISOString().slice(0, 10);
+  const resultLabel = (result: ProfileResultRecord) => result.dimensoes_predominantes.length === 4
+    ? "Perfil equilibrado D/I/S/C"
+    : result.dimensoes_predominantes.map((dimension) => DISC_PROFILES[dimension].name).join(" + ");
+  const linkFor = (token: string) => `${window.location.origin}/perfil/${token}`;
+  const copyInvitation = async (token: string) => navigator.clipboard.writeText(linkFor(token));
 
-  return <div className="space-y-5"><SectionTitle title="Perfil Comportamental" description="Leitura das competências comportamentais já avaliadas, para apoiar feedback e desenvolvimento." />
-    <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs leading-5 text-blue-900"><strong>Uso responsável:</strong> esta visão não é teste psicológico, diagnóstico de personalidade ou decisão automática. Ela apenas reorganiza notas registradas na avaliação de desempenho e deve ser validada em conversa com a pessoa e o gestor.</div>
-    {!signals.length || !selected ? <WorkspaceEmpty icon={Brain} title="Avaliação necessária" description="Importe avaliações com competências comportamentais para formar esta leitura." /> : <>
+  return <div className="space-y-5"><SectionTitle title="Perfil Comportamental" description="Convide o colaborador para responder o questionário de autopercepção e use o resultado como apoio ao diálogo de desenvolvimento." />
+    <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs leading-5 text-blue-900"><strong>Uso responsável:</strong> o material fornecido pelo RH foi estruturado como questionário de autopercepção D/I/S/C. Ele não é teste psicológico, diagnóstico, prova de aptidão ou decisão automática. O resultado não deve ser usado isoladamente em seleção, promoção, desligamento ou punição.</div>
+    {!ready ? <WorkspaceEmpty icon={Brain} title="Estrutura ainda não ativada" description="Execute a migração 011 no Supabase para liberar convites, respostas e resultados protegidos." /> : <>
+      <div className="grid gap-5 xl:grid-cols-[.85fr_1.15fr]"><ProgramPanel title="Criar convite individual" description="O link é temporário, aceita uma resposta e não exige senha"><form onSubmit={onCreateInvitation} className="space-y-4 p-5"><label className="text-xs font-bold text-slate-700">Colaborador<select name="colaborador_id" required className={inputClass}><option value="">Selecione…</option>{collaborators.map((item) => <option key={item.id} value={item.id}>{item.nome}{item.matricula ? ` · ${item.matricula}` : ""}</option>)}</select></label><label className="text-xs font-bold text-slate-700">Link válido até<input name="expira_em" type="date" required min={today} defaultValue={expirationDefault} className={inputClass} /></label><button disabled={saving || !collaborators.length} className="flex w-full items-center justify-center rounded-xl bg-violet-800 px-4 py-3 text-xs font-black text-white disabled:opacity-50">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Brain className="mr-2 h-4 w-4" />}Gerar link do questionário</button>{!collaborators.length && <p className="text-[10px] leading-4 text-amber-700">Cadastre um colaborador ativo antes de gerar o convite.</p>}</form></ProgramPanel>
+        <ProgramPanel title="Link para envio" description="Envie exclusivamente ao colaborador selecionado"><div className="space-y-4 p-5">{generatedLink ? <><div className="flex gap-2"><input readOnly value={generatedLink} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-600" /><button type="button" onClick={() => void navigator.clipboard.writeText(generatedLink)} className="rounded-xl border border-slate-300 p-2.5 text-slate-600" title="Copiar link"><Copy className="h-4 w-4" /></button></div><div className="grid gap-2 sm:grid-cols-3"><a href={`https://wa.me/?text=${encodeURIComponent(`Olá! O RH disponibilizou seu questionário de autopercepção comportamental: ${generatedLink}`)}`} target="_blank" rel="noreferrer" className="flex items-center justify-center rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-black text-white"><MessageCircle className="mr-2 h-4 w-4" />WhatsApp</a><a href={`mailto:?subject=${encodeURIComponent("Questionário de autopercepção comportamental")}&body=${encodeURIComponent(`Olá! Acesse seu link individual: ${generatedLink}`)}`} className="flex items-center justify-center rounded-xl bg-blue-700 px-3 py-2.5 text-xs font-black text-white"><Mail className="mr-2 h-4 w-4" />E-mail</a><a href={generatedLink} target="_blank" rel="noreferrer" className="flex items-center justify-center rounded-xl border border-violet-300 px-3 py-2.5 text-xs font-black text-violet-800"><ExternalLink className="mr-2 h-4 w-4" />Testar link</a></div></> : <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center"><Brain className="mx-auto h-8 w-8 text-slate-300" /><p className="mt-3 text-xs text-slate-500">O novo link aparecerá aqui depois da criação.</p></div>}<p className="text-[10px] leading-4 text-slate-500">O colaborador verá 24 perguntas com as alternativas em ordem protegida. A pontuação é calculada no servidor e não pode ser enviada pelo navegador.</p></div></ProgramPanel></div>
+      <ProgramPanel title="Convites e resultados" description={`${invites.length} convite(s) · ${results.length} resultado(s)`}><div className="overflow-x-auto"><table className="w-full min-w-[980px] text-left text-xs"><thead className="bg-slate-50 uppercase text-slate-500"><tr><th className="px-4 py-3">Colaborador</th><th className="px-4 py-3">Criado</th><th className="px-4 py-3">Validade</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Resultado</th><th className="px-4 py-3">Ações</th></tr></thead><tbody className="divide-y divide-slate-100">{invites.map((invite) => { const collaborator = collaboratorMap.get(invite.colaborador_id); const result = resultMap.get(invite.id); const expired = invite.status === "pendente" && new Date(invite.expira_em).getTime() < referenceTime; const status = expired ? "expirado" : invite.status; return <tr key={invite.id}><td className="px-4 py-4"><p className="font-black text-slate-800">{collaborator?.nome ?? "Colaborador não localizado"}</p><p className="mt-1 text-[10px] text-slate-400">{invite.instrumento_versao}</p></td><td className="px-4 py-4 text-slate-600">{formatDate(invite.criado_em)}</td><td className="px-4 py-4 text-slate-600">{formatDate(invite.expira_em)}</td><td className="px-4 py-4"><Pill tone={status === "concluido" ? "emerald" : status === "revogado" || status === "expirado" ? "red" : "blue"}>{status}</Pill></td><td className="px-4 py-4 text-slate-600">{result ? <><p className="font-bold text-slate-800">{resultLabel(result)}</p><p className="mt-1 text-[10px]">D {result.percentuais.D}% · I {result.percentuais.I}% · S {result.percentuais.S}% · C {result.percentuais.C}%</p></> : "—"}</td><td className="px-4 py-4">{status === "pendente" && <div className="flex gap-2"><button type="button" onClick={() => void copyInvitation(invite.public_token)} className="flex items-center rounded-lg border border-slate-300 px-2.5 py-2 text-[10px] font-black text-slate-700"><Copy className="mr-1.5 h-3.5 w-3.5" />Copiar</button><button type="button" disabled={saving} onClick={() => void onRevokeInvitation(invite.id)} className="flex items-center rounded-lg border border-red-200 px-2.5 py-2 text-[10px] font-black text-red-700"><Ban className="mr-1.5 h-3.5 w-3.5" />Revogar</button></div>}</td></tr>; })}</tbody></table>{!invites.length && <p className="p-8 text-center text-xs text-slate-500">Nenhum convite criado.</p>}</div></ProgramPanel>
+      {latestResult && <ProgramPanel title={`Último resultado · ${collaboratorMap.get(latestResult.colaborador_id)?.nome ?? "Colaborador"}`} description={`${resultLabel(latestResult)} · concluído em ${formatDate(latestResult.concluido_em)}`}><div className="grid gap-4 p-5 sm:grid-cols-4">{(["D", "I", "S", "C"] as DiscDimension[]).map((dimension) => <div key={dimension} className="rounded-2xl border border-slate-200 p-4"><div className="flex items-center justify-between"><span className="text-xs font-black text-slate-700">{DISC_PROFILES[dimension].name}</span><span className="text-lg font-black text-violet-800">{latestResult.percentuais[dimension]}%</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-violet-600" style={{ width: `${latestResult.percentuais[dimension]}%` }} /></div></div>)}</div></ProgramPanel>}
+    </>}
+    <SectionTitle title="Leitura complementar das competências" description="Visão derivada das competências importadas na avaliação de desempenho; não substitui o questionário respondido pelo colaborador." />
+    {!signals.length || !selected ? <WorkspaceEmpty icon={Brain} title="Avaliação de desempenho não importada" description="Esta leitura complementar será exibida quando existirem competências comportamentais avaliadas." /> : <>
       <ProgramPanel title="Selecionar colaborador"><div className="p-5"><select value={selectedId} onChange={(event) => onSelect(event.target.value)} className={inputClass}>{signals.map((item) => <option key={item.id} value={item.id}>{item.colaborador_nome_importado} · {item.setor_importado}</option>)}</select></div></ProgramPanel>
       <div className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]"><ProgramPanel title={selected.colaborador_nome_importado} description={`${selected.cargo_importado} · ${selected.setor_importado}`}><div className="h-[420px] p-4"><ResponsiveContainer width="100%" height="100%"><RadarChart data={scores}><PolarGrid /><PolarAngleAxis dataKey="name" tick={{ fontSize: 10 }} /><Radar dataKey="nota" stroke="#7c3aed" fill="#8b5cf6" fillOpacity={0.3} /><Tooltip /></RadarChart></ResponsiveContainer></div></ProgramPanel>
         <div className="space-y-5"><ProgramPanel title="Competências mais altas"><div className="space-y-2 p-5">{strongest.map((item) => <div key={item.name} className="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-3 text-xs"><span className="font-bold text-emerald-900">{item.name}</span><Pill tone="emerald">{item.nota.toFixed(1)}</Pill></div>)}{!strongest.length && <p className="text-xs text-slate-500">Sem notas comportamentais válidas.</p>}</div></ProgramPanel><ProgramPanel title="Competências para desenvolver"><div className="space-y-2 p-5">{development.map((item) => <div key={item.name} className="flex items-center justify-between rounded-xl bg-amber-50 px-3 py-3 text-xs"><span className="font-bold text-amber-900">{item.name}</span><Pill tone="amber">{item.nota.toFixed(1)}</Pill></div>)}{!development.length && <p className="text-xs text-slate-500">Sem notas comportamentais válidas.</p>}</div></ProgramPanel></div>
