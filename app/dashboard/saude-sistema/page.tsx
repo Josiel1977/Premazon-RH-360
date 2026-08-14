@@ -39,7 +39,8 @@ export default function SystemHealthPage() {
     const candidateIdentificationPromise = supabase.rpc("rh360_diagnostico_identificacao_candidatos");
     const behavioralProfilePromise = supabase.rpc("rh360_diagnostico_perfil_comportamental");
     const employeeImportPromise = supabase.rpc("rh360_diagnostico_importacao_colaboradores");
-    const [runtime, database, dataCenter, admission, onboarding, candidateIdentification, behavioralProfile, employeeImport] = await Promise.allSettled([runtimePromise, databasePromise, dataCenterPromise, admissionPromise, onboardingPromise, candidateIdentificationPromise, behavioralProfilePromise, employeeImportPromise]);
+    const personnelMovementsPromise = supabase.rpc("rh360_diagnostico_movimentacoes");
+    const [runtime, database, dataCenter, admission, onboarding, candidateIdentification, behavioralProfile, employeeImport, personnelMovements] = await Promise.allSettled([runtimePromise, databasePromise, dataCenterPromise, admissionPromise, onboardingPromise, candidateIdentificationPromise, behavioralProfilePromise, employeeImportPromise, personnelMovementsPromise]);
     const collected: SystemCheck[] = [];
     if (runtime.status === "fulfilled") {
       collected.push(...runtime.value.checks);
@@ -113,6 +114,16 @@ export default function SystemHealthPage() {
         detalhe: "A carga controlada de colaboradores ativos ainda não foi preparada.",
         acao: detail?.includes("rh360_diagnostico_importacao_colaboradores") ? "Execute a migração 012 no Supabase." : detail ?? "Revise a migração 012.",
         criticidade: "critica", ordem: 70,
+      });
+    }
+    if (personnelMovements.status === "fulfilled" && !personnelMovements.value.error) collected.push(...((personnelMovements.value.data ?? []) as SystemCheck[]));
+    else {
+      const detail = personnelMovements.status === "fulfilled" ? personnelMovements.value.error?.message : String(personnelMovements.reason);
+      collected.push({
+        chave: "migracao_016_indisponivel", titulo: "Movimentações de Pessoal indisponíveis", categoria: "Banco", status: "erro",
+        detalhe: "RQs controlados, solicitações e fluxo segregado ainda não foram preparados.",
+        acao: detail?.includes("rh360_diagnostico_movimentacoes") ? "Execute as migrações 015 e 016 no Supabase, nessa ordem." : detail ?? "Revise as migrações 015 e 016.",
+        criticidade: "critica", ordem: 74,
       });
     }
     setChecks(collected.sort((a, b) => a.ordem - b.ordem)); setLoading(false);

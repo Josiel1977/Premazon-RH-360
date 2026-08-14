@@ -2,13 +2,13 @@
 
 Plataforma de gestão de pessoas construída com Next.js, Supabase e TypeScript. A base é autenticada e auditável e já possui os módulos operacionais **Rumo ao Topo**, **Recrutamento & Seleção**, **Admissão & Onboarding** e **Treinamento & Desenvolvimento**.
 
-Versão atual: **0.12.0**.
+Versão atual: **0.13.0**.
 
 ## O que já está disponível
 
 - autenticação real por e-mail e senha com Supabase Auth;
 - rotas internas protegidas no servidor;
-- perfis de acesso: administrador, diretoria, RH, gestor, instrutor e colaborador;
+- perfis de acesso: administrador, diretoria, RH, Departamento Pessoal, gestor, instrutor e colaborador;
 - banco relacional com segurança por linha (RLS) e auditoria;
 - importação segura de planilhas XLSX e arquivos CSV;
 - validação e prévia antes da gravação;
@@ -57,6 +57,9 @@ Versão atual: **0.12.0**.
 - Clima e Engajamento organizado em 18 áreas de trabalho, sem indicadores demonstrativos;
 - Carreira e Sucessão organizado em 11 áreas conectadas ao cadastro, desempenho, PDI e capacitação;
 - portfólio de Projetos de RH com Rumo ao Topo, Campanhas, Reconhecimento, Qualidade de Vida e Segurança.
+- Movimentações de Pessoal com desligamento, aumento de quadro, substituição, protocolos e aprovações segregadas;
+- vínculo permanente do protocolo ao código e à revisão dos RQs oficiais, sem substituir os documentos da Qualidade;
+- fluxo Gestor → RH → DP → Diretoria → Conclusão, histórico imutável e integração com a Central de Pendências.
 
 ## Executar localmente
 
@@ -99,6 +102,8 @@ No SQL Editor do Supabase, execute nesta ordem:
 13. `database/migrations/20260813_012_importacao_cadastro_mestre.sql` — importação controlada, deduplicação e auditoria do cadastro mestre de colaboradores.
 14. `database/migrations/20260813_013_compatibilidade_importacao_colaboradores.sql` — compatibilidade segura da tabela de setores para a importação do cadastro mestre.
 15. `database/migrations/20260813_014_compatibilidade_cargos_importacao.sql` — valor neutro para o nível obrigatório de novas funções importadas, sem inferir senioridade.
+16. `database/migrations/20260814_015_perfil_departamento_pessoal.sql` — adiciona o perfil segregado do Departamento Pessoal.
+17. `database/migrations/20260814_016_movimentacoes_pessoal_rqs.sql` — RQs controlados, protocolos, fluxo de aprovação, histórico e bucket privado.
 
 Depois, em **Authentication > Users**, crie o primeiro usuário. Copie o UUID dele e execute no SQL Editor:
 
@@ -185,6 +190,18 @@ O envio usa o protocolo TUS, com retomada automática e barra de progresso. O bu
 5. Abra **Pendências e alertas** para sincronizar condições automáticas, criar tarefas e acompanhar a resolução.
 
 As regras funcionais, fontes dos alertas e permissões estão em [docs/fundacao-rh360.md](docs/fundacao-rh360.md).
+
+## Movimentações de Pessoal
+
+1. Execute as migrações 015 e 016 separadamente, nessa ordem.
+2. Cadastre ou ajuste o usuário do Departamento Pessoal com o perfil `dp`.
+3. Abra **Gestão de Pessoas > Movimentações de Pessoal**.
+4. Use a área correspondente para solicitar desligamento, aumento de quadro ou substituição.
+5. Acompanhe o protocolo em **Minhas Solicitações** ou **Acompanhar Solicitações**.
+6. RH, DP e Diretoria decidem sua própria etapa em **Pendências / Aprovações**.
+7. Vincule os arquivos oficiais no bucket privado `qualidade-rqs` somente depois da conferência da Qualidade.
+
+O RQ.04.10 Rev. 00 foi conferido no documento encaminhado. Para o RQ.04.09 Rev. 03, somente a referência foi fornecida; seu conteúdo não foi reproduzido nem inferido. Consulte [docs/movimentacoes-pessoal.md](docs/movimentacoes-pessoal.md).
 
 ## Central de Dados e Relatórios
 

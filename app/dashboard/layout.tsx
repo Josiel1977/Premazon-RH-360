@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
+  ArrowLeftRight,
   Award,
   BarChart3,
   Bell,
@@ -157,6 +158,7 @@ const menuGroups: MenuGroup[] = [
     icon: Users,
     links: [
       { name: "Dashboard executivo", href: "/dashboard", icon: LayoutDashboard },
+      { name: "Movimentações de Pessoal", href: "/dashboard/movimentacoes", icon: ArrowLeftRight, badge: "NOVO" },
       { name: "Central de dados", href: "/dashboard/dados", icon: Database, badge: "NOVO" },
       { name: "Colaborador 360", href: "/dashboard/colaboradores", icon: Users, badge: "NOVO" },
       { name: "Pendências e alertas", href: "/dashboard/pendencias", icon: Siren, badge: "NOVO" },
