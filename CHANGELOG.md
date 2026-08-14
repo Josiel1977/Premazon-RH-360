@@ -1,5 +1,19 @@
 # Histórico de versões
 
+## 0.13.0 — 2026-08-14
+
+- cria Movimentações de Pessoal como área central da Gestão de Pessoas;
+- adiciona solicitações de desligamento, aumento de quadro e substituição;
+- implementa o fluxo Gestor → RH → DP → Diretoria → Conclusão com segregação de perfis;
+- gera protocolos permanentes e histórico imutável de solicitação, aprovação, rejeição e conclusão;
+- preserva o código e a revisão do RQ vigente dentro de cada solicitação;
+- registra RQ.04.09 Rev. 03 somente pela referência recebida, sem inventar conteúdo não anexado;
+- registra RQ.04.10 Rev. 00 após conferência do documento oficial de duas páginas;
+- cria catálogo de documentos controlados e bucket privado `qualidade-rqs`;
+- integra a etapa atual à Central de Pendências e fecha a tarefa ao concluir ou rejeitar;
+- adiciona RLS, auditoria, funções transacionais e diagnóstico das migrações 015 e 016;
+- adiciona o perfil Departamento Pessoal em migração separada para uso seguro pelo PostgreSQL.
+
 ## 0.12.0 — 2026-08-13
 
 - transforma o HTML fornecido pelo RH em questionário responsivo de autopercepção D/I/S/C;
