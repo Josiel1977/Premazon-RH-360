@@ -1,6 +1,7 @@
 export type MovementType = "desligamento" | "aumento_quadro" | "substituicao";
-export type MovementStage = "gestor" | "rh" | "dp" | "diretoria" | "conclusao";
+export type MovementStage = "gestor" | "rh" | "dp" | "diretoria" | "recrutamento" | "admissao" | "conclusao";
 export type MovementStatus = "em_fluxo" | "rejeitada" | "concluida" | "cancelada";
+export type NoticeType = "trabalhado" | "indenizado" | "termino_contrato";
 
 export const movementTypeLabels: Record<MovementType, string> = {
   desligamento: "Solicitação de desligamento",
@@ -13,7 +14,15 @@ export const movementStageLabels: Record<MovementStage, string> = {
   rh: "RH",
   dp: "Departamento Pessoal",
   diretoria: "Diretoria",
+  recrutamento: "Recrutamento e Seleção",
+  admissao: "Admissão e Onboarding 360°",
   conclusao: "Conclusão",
+};
+
+export const noticeTypeLabels: Record<NoticeType, string> = {
+  trabalhado: "Aviso trabalhado",
+  indenizado: "Aviso indenizado",
+  termino_contrato: "Término de contrato",
 };
 
 export const movementStatusLabels: Record<MovementStatus, string> = {
@@ -24,13 +33,17 @@ export const movementStatusLabels: Record<MovementStatus, string> = {
 };
 
 export function movementDocumentCode(type: MovementType) {
-  return type === "desligamento" ? "RQ.04.09" : "RQ.04.10";
+  return type === "desligamento" ? "RQ.04.09" : null;
 }
 
-export function nextMovementStage(stage: MovementStage): MovementStage | null {
-  const stages: MovementStage[] = ["gestor", "rh", "dp", "diretoria", "conclusao"];
-  const index = stages.indexOf(stage);
-  return index >= 0 && index < stages.length - 1 ? stages[index + 1] : null;
+export function nextMovementStage(type: MovementType, stage: MovementStage, noticeType?: NoticeType | null): MovementStage | null {
+  if (stage === "gestor") return "rh";
+  if (stage === "rh") return type === "desligamento" ? "dp" : "recrutamento";
+  if (stage === "dp") return noticeType === "indenizado" ? "diretoria" : "conclusao";
+  if (stage === "diretoria") return "conclusao";
+  if (stage === "recrutamento") return "admissao";
+  if (stage === "admissao") return "conclusao";
+  return null;
 }
 
 export function canApproveMovement(profile: string, stage: MovementStage) {
@@ -41,5 +54,5 @@ export function canApproveMovement(profile: string, stage: MovementStage) {
 export function movementProgress(stage: MovementStage, status: MovementStatus) {
   if (status === "concluida") return 100;
   if (status === "rejeitada" || status === "cancelada") return 0;
-  return { gestor: 20, rh: 40, dp: 60, diretoria: 80, conclusao: 100 }[stage];
+  return { gestor: 15, rh: 30, dp: 55, diretoria: 80, recrutamento: 60, admissao: 85, conclusao: 100 }[stage];
 }
