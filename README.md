@@ -104,6 +104,7 @@ No SQL Editor do Supabase, execute nesta ordem:
 15. `database/migrations/20260813_014_compatibilidade_cargos_importacao.sql` — valor neutro para o nível obrigatório de novas funções importadas, sem inferir senioridade.
 16. `database/migrations/20260814_015_perfil_departamento_pessoal.sql` — adiciona o perfil segregado do Departamento Pessoal.
 17. `database/migrations/20260814_016_movimentacoes_pessoal_rqs.sql` — RQs controlados, protocolos, fluxo de aprovação, histórico e bucket privado.
+18. `database/migrations/20260820_017_integracao_movimentacoes_recrutamento_admissao.sql` — integração incremental com vagas, candidatos aprovados e Admissão e Onboarding 360°.
 
 Depois, em **Authentication > Users**, crie o primeiro usuário. Copie o UUID dele e execute no SQL Editor:
 
@@ -193,15 +194,17 @@ As regras funcionais, fontes dos alertas e permissões estão em [docs/fundacao-
 
 ## Movimentações de Pessoal
 
-1. Execute as migrações 015 e 016 separadamente, nessa ordem.
+1. Execute as migrações 015, 016 e 017 separadamente, nessa ordem. Se 015 e 016 já estiverem aplicadas, execute somente a 017.
 2. Cadastre ou ajuste o usuário do Departamento Pessoal com o perfil `dp`.
 3. Abra **Gestão de Pessoas > Movimentações de Pessoal**.
 4. Use a área correspondente para solicitar desligamento, aumento de quadro ou substituição.
 5. Acompanhe o protocolo em **Minhas Solicitações** ou **Acompanhar Solicitações**.
-6. RH, DP e Diretoria decidem sua própria etapa em **Pendências / Aprovações**.
-7. Vincule os arquivos oficiais no bucket privado `qualidade-rqs` somente depois da conferência da Qualidade.
+6. O RH decide a etapa inicial: desligamentos seguem ao DP; contratações seguem para Recrutamento e Seleção.
+7. No desligamento, a Diretoria participa somente quando o aviso é indenizado.
+8. Na contratação, o RH vincula a vaga; ao aprovar um candidato e abrir sua admissão, o protocolo avança para **Admissão e Onboarding 360°**.
+9. Vincule os arquivos oficiais no bucket privado `qualidade-rqs` somente depois da conferência da Qualidade.
 
-O RQ.04.10 Rev. 00 foi conferido no documento encaminhado. Para o RQ.04.09 Rev. 03, somente a referência foi fornecida; seu conteúdo não foi reproduzido nem inferido. Consulte [docs/movimentacoes-pessoal.md](docs/movimentacoes-pessoal.md).
+O RQ.04.09 Rev. 03 e o RQ.04.10 Rev. 00 foram conferidos. O primeiro formaliza o desligamento; o segundo é a ficha do candidato no recrutamento, não a solicitação de vaga do gestor. Consulte [docs/movimentacoes-pessoal.md](docs/movimentacoes-pessoal.md).
 
 ## Central de Dados e Relatórios
 
