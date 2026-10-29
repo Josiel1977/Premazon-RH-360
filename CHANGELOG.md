@@ -1,5 +1,13 @@
 # Histórico de versões
 
+## Correção pós-0.13.0 — 2026-08-20
+
+- corrige a finalidade dos documentos oficiais: RQ.04.09 no desligamento e RQ.04.10 como ficha do candidato;
+- implementa o desligamento Gestor → RH → DP → Diretoria somente no aviso indenizado → Conclusão;
+- integra contratação e substituição no fluxo Gestor → RH → Recrutamento → Admissão e Onboarding 360° → Conclusão;
+- permite ao RH vincular uma vaga e sincroniza múltiplas admissões sem expor dados pessoais do candidato ao gestor;
+- preserva a migração 016 já publicada e entrega a evolução por meio da migração incremental 017.
+
 ## 0.13.0 — 2026-08-14
 
 - cria Movimentações de Pessoal como área central da Gestão de Pessoas;
